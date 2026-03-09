@@ -11,6 +11,8 @@ ATTENTION = 15
 
 
 class ColorFormatter(logging.Formatter):
+    """Formatter that injects ANSI colors for interactive console logs."""
+
     def format(self, record):
         res = super(ColorFormatter, self).format(record)
         if record.levelno >= logging.ERROR:
@@ -23,6 +25,8 @@ class ColorFormatter(logging.Formatter):
 
 
 class NoColorFormatter(logging.Formatter):
+    """Formatter that strips ANSI escapes for files and Windows terminals."""
+
     def format(self, record):
         res = super(NoColorFormatter, self).format(record)
         res = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", res)

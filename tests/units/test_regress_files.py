@@ -7,6 +7,16 @@ from jsflow.launcher import unittest_main
 
 
 REGRESS_DIR = os.path.join(os.path.dirname(__file__), "..", "regress")
+VULNERABILITY_DIR = os.path.join(REGRESS_DIR, "vulnerability_detection")
+
+VULNERABILITY_FILES = {
+    "code_execution.js",
+    "nosql_injection.js",
+    "os_command_injection.js",
+    "path_traversal.js",
+    "prototype_pollution.js",
+    "xss_vulnerable.js",
+}
 
 
 class TestRegressFiles(unittest.TestCase):
@@ -20,13 +30,13 @@ class TestRegressFiles(unittest.TestCase):
 
     def _run_test(self, js_file, vul_type, should_detect=True):
         """Helper to run jsflow on a file and check for vulnerabilities."""
-        from jsflow.core.graph import Graph
         import argparse
-        
-        js_path = os.path.join(REGRESS_DIR, js_file)
+
+        js_path = self._resolve_regress_path(js_file)
         
         # Create a wrapper file to require the module
-        test_file_name = os.path.join(self.temp_dir, f"test_{js_file}")
+        wrapper_name = f"test_{js_file.replace(os.sep, '_').replace('/', '_')}"
+        test_file_name = os.path.join(self.temp_dir, wrapper_name)
         js_call_template = f"var main_func=require('{js_path}');"
         with open(test_file_name, "w") as f:
             f.write(js_call_template)
@@ -61,6 +71,16 @@ class TestRegressFiles(unittest.TestCase):
                 G.success_detect,
                 f"Did not expect to detect {vul_type} in {js_file} but did"
             )
+
+    def _resolve_regress_path(self, js_file):
+        """Resolve benchmark paths across the current regress directory layout."""
+        if os.path.isabs(js_file):
+            return js_file
+
+        if js_file in VULNERABILITY_FILES:
+            return os.path.join(VULNERABILITY_DIR, js_file)
+
+        return os.path.join(REGRESS_DIR, js_file)
 
     def test_path_traversal_detection(self):
         """Test path traversal detection on path_traversal.js."""

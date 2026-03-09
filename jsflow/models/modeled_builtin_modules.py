@@ -1,5 +1,10 @@
 """
-This module is used to model the built-in modules of Node.js.
+Models for selected Node.js built-in modules.
+
+These helpers approximate the behavior of common runtime modules such as
+`fs`, `util`, and `path` closely enough for taint and value-flow analysis.
+The focus is not full semantic fidelity; it is preserving the edges that matter
+for vulnerability detection and exploit reconstruction.
 """
 
 from ..core.graph import Graph
@@ -22,6 +27,7 @@ logger = create_logger("main_logger", output_type="console")
 
 
 def get_module(G, name):
+    """Lazily instantiate and cache a modeled built-in module by name."""
     if name in modeled_modules:
         if name in G.builtin_modules:
             return G.builtin_modules[name]
@@ -78,6 +84,12 @@ def read_file(
 def read_file_sync(
     G: Graph, caller_ast, extra, _, path=NodeHandleResult(), options=None
 ):
+    """Model `fs.readFileSync` as a best-effort concrete file read.
+
+    Known literal paths are read from disk relative to the current file so the
+    analysis can propagate actual string content when available. Unknown paths
+    fall back to wildcard strings.
+    """
     if options is None:
         options = NodeHandleResult()
     paths = list(filter(lambda x: x is not None, path.values))
@@ -127,6 +139,12 @@ def setup_util(G: Graph):
 
 
 def util_promisify(G: Graph, caller_ast, extra, _, func=NodeHandleResult()):
+    """Model `util.promisify` by wrapping callback-style functions.
+
+    The wrapper is intentionally shallow: it captures the original callable and
+    returns a synthetic function object whose body creates a promise-like object
+    and wires the callback result into the fulfillment path.
+    """
     returned_objs = []
     func_objs = to_obj_nodes(G, func, caller_ast)
     for func_obj in func_objs:
@@ -174,6 +192,7 @@ def util_promisify(G: Graph, caller_ast, extra, _, func=NodeHandleResult()):
 
 
 def util_format(G: Graph, caller_ast, extra, _, fmt=NodeHandleResult(), *args):
+    """Model `util.format` as string concatenation over format parts and args."""
     returned_objs = []
     used_objs = set()
     args_obj_nodes = list(map(lambda arg: to_obj_nodes(G, arg, caller_ast), args))
@@ -268,6 +287,7 @@ def util_format(G: Graph, caller_ast, extra, _, fmt=NodeHandleResult(), *args):
 
 
 def setup_path(G: Graph):
+    """Register the small subset of `path` used by the analysis."""
     module_exports = G.add_obj_node()
     G.add_blank_func_as_prop("join", module_exports, path_join)
     return module_exports

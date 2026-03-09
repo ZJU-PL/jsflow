@@ -1,4 +1,9 @@
-"""OpenAI Codex Responses Provider."""
+"""OpenAI Codex Responses provider.
+
+This adapter translates the chat/tool schema used by jsflow into the wire
+format expected by the Codex Responses streaming endpoint, then reconstructs
+plain text and tool-call requests from server-sent events.
+"""
 
 from __future__ import annotations
 
@@ -80,12 +85,14 @@ class OpenAICodexProvider(LLMProvider):
 
 
 def _strip_model_prefix(model: str) -> str:
+    """Normalize legacy provider-prefixed model names for the API payload."""
     if model.startswith("openai-codex/") or model.startswith("openai_codex/"):
         return model.split("/", 1)[1]
     return model
 
 
 def _build_headers(account_id: str, token: str) -> dict[str, str]:
+    """Build HTTP headers required by the Codex web endpoint."""
     return {
         "Authorization": f"Bearer {token}",
         "chatgpt-account-id": account_id,
@@ -103,6 +110,7 @@ async def _request_codex(
     body: dict[str, Any],
     verify: bool,
 ) -> tuple[str, list[ToolCallRequest], str]:
+    """Send a streaming Codex request and decode the SSE response."""
     async with httpx.AsyncClient(timeout=60.0, verify=verify) as client:
         async with client.stream("POST", url, headers=headers, json=body) as response:
             if response.status_code != 200:
@@ -130,6 +138,11 @@ def _convert_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _convert_messages(messages: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]]]:
+    """Translate OpenAI-style chat history into Codex input items.
+
+    The Codex endpoint expects a flattened `input` array containing user
+    messages, assistant outputs, tool calls, and tool outputs as separate items.
+    """
     system_prompt = ""
     input_items: list[dict[str, Any]] = []
 
@@ -190,6 +203,7 @@ def _convert_messages(messages: list[dict[str, Any]]) -> tuple[str, list[dict[st
 
 
 def _convert_user_message(content: Any) -> dict[str, Any]:
+    """Convert a user message payload into Codex content blocks."""
     if isinstance(content, str):
         return {"role": "user", "content": [{"type": "input_text", "text": content}]}
     if isinstance(content, list):
@@ -209,6 +223,7 @@ def _convert_user_message(content: Any) -> dict[str, Any]:
 
 
 def _split_tool_call_id(tool_call_id: Any) -> tuple[str, str | None]:
+    """Split jsflow's combined tool-call identifier into call and item ids."""
     if isinstance(tool_call_id, str) and tool_call_id:
         if "|" in tool_call_id:
             call_id, item_id = tool_call_id.split("|", 1)
@@ -218,11 +233,13 @@ def _split_tool_call_id(tool_call_id: Any) -> tuple[str, str | None]:
 
 
 def _prompt_cache_key(messages: list[dict[str, Any]]) -> str:
+    """Derive a stable cache key from the logical conversation state."""
     raw = json.dumps(messages, ensure_ascii=True, sort_keys=True)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 async def _iter_sse(response: httpx.Response) -> AsyncGenerator[dict[str, Any], None]:
+    """Yield decoded JSON events from the response event stream."""
     buffer: list[str] = []
     async for line in response.aiter_lines():
         if line == "":
@@ -243,6 +260,7 @@ async def _iter_sse(response: httpx.Response) -> AsyncGenerator[dict[str, Any], 
 
 
 async def _consume_sse(response: httpx.Response) -> tuple[str, list[ToolCallRequest], str]:
+    """Reassemble text deltas and tool-call fragments from Codex SSE events."""
     content = ""
     tool_calls: list[ToolCallRequest] = []
     tool_call_buffers: dict[str, dict[str, Any]] = {}
@@ -303,10 +321,12 @@ _FINISH_REASON_MAP = {"completed": "stop", "incomplete": "length", "failed": "er
 
 
 def _map_finish_reason(status: str | None) -> str:
+    """Map Codex response statuses onto OpenAI-style finish reasons."""
     return _FINISH_REASON_MAP.get(status or "completed", "stop")
 
 
 def _friendly_error(status_code: int, raw: str) -> str:
+    """Collapse common HTTP failures into shorter user-facing messages."""
     if status_code == 429:
         return "ChatGPT usage quota exceeded or rate limit triggered. Please try again later."
     return f"HTTP {status_code}: {raw}"

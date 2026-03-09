@@ -1,5 +1,13 @@
 """
-This module is used to model the built-in functions and objects of JavaScript.
+Models for JavaScript built-ins and selected Node-flavored globals.
+
+This file seeds the initial execution environment used by symbolic execution.
+Each helper registers constructors, prototypes, or simplified implementations
+for APIs like `Array`, `Object`, `Promise`, `JSON`, `Math`, and `process`.
+
+The guiding rule is pragmatic fidelity: preserve prototype structure, taint
+propagation, and data-flow edges that matter to vulnerability analysis without
+trying to emulate every JavaScript runtime detail.
 """
 
 from ..core.graph import Graph
@@ -81,6 +89,11 @@ def setup_js_builtins(G: Graph):
 
 
 def opg_tainted_fake_arg_constructor(G: Graph, call_ast, extra, _, *args):
+    """Create a synthetic wildcard object that is explicitly tainted.
+
+    jsflow uses this helper when it needs a stand-in for attacker-controlled
+    inputs that do not originate from a concrete program source node.
+    """
     returned_obj = G.add_obj_node(call_ast, js_type=None, value=wildcard)
     G.set_node_attr(returned_obj, ("tainted", True))
     G.set_node_attr(returned_obj, ("fake_arg", True))
@@ -88,6 +101,7 @@ def opg_tainted_fake_arg_constructor(G: Graph, call_ast, extra, _, *args):
 
 
 def opg_mark_tainted_fake_arg(G: Graph, call_ast, extra, _, *args):
+    """Mutate the given objects in place to behave like tainted fake args."""
     returned_objs = []
     for arg in args:
         for obj in to_obj_nodes(G, arg, call_ast):
@@ -99,6 +113,7 @@ def opg_mark_tainted_fake_arg(G: Graph, call_ast, extra, _, *args):
 
 
 def opg_combine(G: Graph, call_ast, extra, _, *args):
+    """Return the union of object nodes from multiple operands."""
     objs = list(chain(*map(lambda x: x.obj_nodes, args)))
     return NodeHandleResult(obj_nodes=objs, used_objs=objs)
 
@@ -140,6 +155,7 @@ def setup_string(G: Graph):
 
 
 def setup_number(G: Graph):
+    """Register the `Number` constructor and wire its prototype chain."""
     number_cons = G.add_blank_func_to_scope(
         "Number", scope=G.BASE_SCOPE, python_func=number_constructor
     )
@@ -201,6 +217,7 @@ def setup_array(G: Graph):
 
 
 def setup_boolean(G: Graph):
+    """Register the `Boolean` constructor and its prototype object."""
     boolean_cons = G.add_blank_func_to_scope(
         "Boolean", scope=G.BASE_SCOPE, python_func=this_returning_func
     )
@@ -219,6 +236,7 @@ def setup_boolean(G: Graph):
 
 
 def setup_symbol(G: Graph):
+    """Register the `Symbol` constructor with a minimal prototype chain."""
     symbol_cons = G.add_blank_func_to_scope(
         "Symbol", scope=G.BASE_SCOPE, python_func=this_returning_func
     )
@@ -235,6 +253,7 @@ def setup_symbol(G: Graph):
 
 
 def setup_errors(G: Graph):
+    """Register the base `Error` constructor used by error flows."""
     error_cons = G.add_blank_func_to_scope(
         "Error", scope=G.BASE_SCOPE, python_func=this_returning_func
     )
@@ -250,6 +269,11 @@ def setup_errors(G: Graph):
 
 
 def error_constructor(G: Graph, call_ast, extra, _, message=NodeHandleResult()):
+    """Placeholder constructor for `Error` instances.
+
+    The current model only needs allocation side effects, so the message payload
+    is intentionally ignored.
+    """
     error_obj = G.add_obj_node(call_ast)
     G.set_node_attr(error_obj)
 
@@ -336,6 +360,7 @@ def setup_object_and_function(G: Graph):
 
 
 def setup_global_functions(G: Graph):
+    """Install simplified global functions such as `parseInt`, timers, and `eval`."""
     parse_int = G.add_blank_func_to_scope("parseInt", G.BASE_SCOPE, parse_number)
     parse_float = G.add_blank_func_to_scope("parseFloat", G.BASE_SCOPE, parse_number)
     decode_uri = G.add_blank_func_to_scope(
@@ -436,6 +461,12 @@ def array_p_for_each_value(
     callback=NodeHandleResult(),
     this=None,
 ):
+    """Model `Array.prototype.forEach` with branch-aware callback invocation.
+
+    Compared with `array_p_for_each`, this variant preserves more loop metadata
+    in `G.for_stack` so later analysis passes can recover value-sensitive flow
+    through callbacks.
+    """
     loop_var_names = []
     for cb in callback.obj_nodes:
         try:
@@ -1595,6 +1626,7 @@ def function_p_bind(
 
 
 def parse_number(G: Graph, caller_ast, extra, _, s=NodeHandleResult(), rad=None):
+    """Model `parseInt`/`parseFloat` as taint-preserving numeric coercions."""
     returned_objs = []
     for obj in s.obj_nodes:
         new_literal = G.add_obj_node(caller_ast, "number")
@@ -1605,6 +1637,7 @@ def parse_number(G: Graph, caller_ast, extra, _, s=NodeHandleResult(), rad=None)
 
 
 def blank_func(G: Graph, caller_ast, extra, _, *args):
+    """Consume arguments without producing additional semantic effects."""
     used_objs = []
     if _ is not None:
         used_objs.extend(_.obj_nodes)
@@ -1613,6 +1646,7 @@ def blank_func(G: Graph, caller_ast, extra, _, *args):
 
 
 def func_calling_func(G: Graph, call_ast, extra, _, *args):
+    """Model timer-style APIs that invoke function arguments and return a token."""
     dummy_return_obj = G.add_obj_node(call_ast, value=wildcard)
     used_objs = set()
     for arg in args:
@@ -1631,6 +1665,7 @@ def func_calling_func(G: Graph, call_ast, extra, _, *args):
 
 
 def this_returning_func(G: Graph, caller_ast, extra, this=None, *args):
+    """Return the receiver when present, otherwise fall back to the first arg."""
     if this is None:
         if args:
             return args[0]
@@ -1641,6 +1676,7 @@ def this_returning_func(G: Graph, caller_ast, extra, this=None, *args):
 
 
 def string_returning_func(G: Graph, caller_ast, extra, _, *args):
+    """Return a wildcard string object that depends on the provided arguments."""
     returned_string = G.add_obj_node(caller_ast, "string", wildcard)
     used_objs = set()
     for arg in args:
@@ -1652,6 +1688,7 @@ def string_returning_func(G: Graph, caller_ast, extra, _, *args):
 
 
 def boolean_returning_func(G: Graph, caller_ast, extra, _, *args):
+    """Return the abstract boolean domain while preserving argument dependencies."""
     used_objs = set()
     for arg in args:
         used_objs.update(arg.obj_nodes)
@@ -1662,6 +1699,7 @@ def boolean_returning_func(G: Graph, caller_ast, extra, _, *args):
 
 
 def object_constructor(G: Graph, caller_ast, extra, _, *args):
+    """Allocate a plain object and connect constructor arguments as contributors."""
     returned_obj = G.add_obj_node(caller_ast)
     used_objs = chain(*[arg.obj_nodes for arg in args])
     add_contributes_to(G, used_objs, returned_obj)
@@ -1669,6 +1707,7 @@ def object_constructor(G: Graph, caller_ast, extra, _, *args):
 
 
 def number_constructor(G: Graph, caller_ast, extra, _, *args):
+    """Allocate a boxed number-like object with the proper prototype links."""
     returned_obj = G.add_obj_node(caller_ast, None)
     G.add_obj_as_prop(
         "__proto__", parent_obj=returned_obj, tobe_added_obj=G.number_prototype
@@ -1682,6 +1721,7 @@ def number_constructor(G: Graph, caller_ast, extra, _, *args):
 
 
 def setup_global_objs(G: Graph):
+    """Install global objects such as `console` and tainted `process` values."""
     console_obj = G.add_obj_to_scope(name="console", scope=G.BASE_SCOPE)
     G.add_blank_func_as_prop("log", console_obj, console_log)
     G.add_blank_func_as_prop("error", console_obj, console_log)
@@ -1711,6 +1751,7 @@ def setup_global_objs(G: Graph):
 
 
 def console_log(G: Graph, caller_ast, extra, _, *args):
+    """Model console logging as a sinkless side effect used only for debugging."""
     used_objs = set()
     for i, arg in enumerate(args):
         used_objs.update(arg.obj_nodes)
@@ -1727,6 +1768,7 @@ def console_log(G: Graph, caller_ast, extra, _, *args):
 
 
 def setup_json(G: Graph):
+    """Register the `JSON` global with simplified `parse` and `stringify`."""
     console_obj = G.add_obj_to_scope(name="JSON", scope=G.BASE_SCOPE)
     G.add_blank_func_as_prop("parse", console_obj, json_parse)
     G.add_blank_func_as_prop("stringify", console_obj, string_returning_func)
@@ -1735,6 +1777,7 @@ def setup_json(G: Graph):
 def json_parse(
     G: Graph, call_ast, extra, _, text=NodeHandleResult(), reviver=NodeHandleResult()
 ):
+    """Parse concrete JSON strings when possible, else return a wildcard object."""
     json_strings, sources, _ = to_values(G, text)
     returned_objs = []
     used_objs = set()
@@ -1750,6 +1793,7 @@ def json_parse(
 
 
 def setup_regexp(G: Graph):
+    """Register a lightweight `RegExp` constructor and prototype shell."""
     regexp_cons = G.add_blank_func_to_scope(
         "RegExp", scope=G.BASE_SCOPE, python_func=regexp_constructor
     )
@@ -1766,6 +1810,7 @@ def setup_regexp(G: Graph):
 def regexp_constructor(
     G: Graph, caller_ast, extra, _, pattern=NodeHandleResult(), flags=NodeHandleResult()
 ):
+    """Create RegExp objects from known pattern/flag pairs when available."""
     returned_objs = []
     if pattern.obj_nodes:
         flag_objs = flags.obj_nodes if flags else []
@@ -2530,6 +2575,7 @@ def convert_to_python_re(code) -> Tuple[re.Pattern, bool, bool]:
 
 
 def setup_math(G: Graph):
+    """Register the subset of `Math` currently modeled by jsflow."""
     math_obj = G.add_obj_to_scope("Math", scope=G.BASE_SCOPE)
     G.add_blank_func_as_prop("max", math_obj, math_max)
     G.add_blank_func_as_prop("min", math_obj, math_min)
@@ -2537,6 +2583,7 @@ def setup_math(G: Graph):
 
 
 def math_max(G: Graph, caller_ast, extra, _, *args: NodeHandleResult):
+    """Compute abstract maxima across all argument value combinations."""
     returned_values = []
     returned_sources = []
     sources_stack = []
@@ -2575,6 +2622,7 @@ def math_max(G: Graph, caller_ast, extra, _, *args: NodeHandleResult):
 
 
 def math_min(G: Graph, caller_ast, extra, _, *args: NodeHandleResult):
+    """Compute abstract minima across all argument value combinations."""
     returned_values = []
     returned_sources = []
     sources_stack = []
@@ -2613,6 +2661,7 @@ def math_min(G: Graph, caller_ast, extra, _, *args: NodeHandleResult):
 
 
 def math_sqrt(G: Graph, caller_ast, extra, _, *args: NodeHandleResult):
+    """Model `Math.sqrt` over concrete values while preserving wildcards."""
     xs, sources, _ = to_values(G, args[0], for_prop=True)
     returned_values = []
     returned_sources = []
@@ -2658,6 +2707,12 @@ def setup_promise(G: Graph):
 
 
 def promise_constructor(G: Graph, call_ast, extra, _, executor=NodeHandleResult()):
+    """Allocate a promise object and execute its executor eagerly in analysis.
+
+    Fulfillment and rejection are recorded on synthetic node attributes so
+    `.then`, `.catch`, and `.finally` can schedule follow-on callbacks through
+    the microtask queue model.
+    """
     promise = G.add_obj_node(call_ast, None, None)
     executors = to_obj_nodes(G, executor, call_ast)
     G.set_node_attr(promise, ("executors", executors))
@@ -2767,6 +2822,7 @@ def promise_p_then(
 
 
 def promise_p_catch(G: Graph, call_ast, extra, this, on_rejected=NodeHandleResult()):
+    """Model `Promise.prototype.catch` as rejection-only continuation wiring."""
     new_promise = G.add_obj_node(call_ast, None, None)
     old_promises = list(this.obj_nodes)
     saved_call_stack = G.call_stack
@@ -2811,10 +2867,12 @@ def promise_p_catch(G: Graph, call_ast, extra, this, on_rejected=NodeHandleResul
 
 
 def promise_p_finally(G: Graph, caller_ast, extra, this, on_finally=NodeHandleResult()):
+    """Model `finally` by reusing the same callback for both promise outcomes."""
     return promise_p_then(G, caller_ast, extra, this, on_finally, on_finally)
 
 
 def promise_resolve(G: Graph, caller_ast, extra, this, value=NodeHandleResult()):
+    """Create an already-fulfilled promise carrying the provided value."""
     promise = G.add_obj_node(caller_ast, None, None)
     G.set_node_attr(promise, ("executors", []))
     G.add_obj_as_prop(
@@ -2828,6 +2886,7 @@ def promise_resolve(G: Graph, caller_ast, extra, this, value=NodeHandleResult())
 
 
 def setup_proxy(G: Graph):
+    """Register the `Proxy` constructor used for apply/get trap modeling."""
     proxy_cons = G.add_blank_func_to_scope(
         "Proxy", scope=G.BASE_SCOPE, python_func=proxy_constructor
     )
@@ -2847,6 +2906,7 @@ def proxy_constructor(
     target=NodeHandleResult(),
     handler=NodeHandleResult(),
 ):
+    """Create proxy wrappers for a limited subset of `apply` and `get` traps."""
     proxies = []
     for tgt in target.obj_nodes:
         for hdl in handler.obj_nodes:
