@@ -10,16 +10,17 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+from pathlib import Path
 from typing import Any, AsyncGenerator
 
 import httpx
 from loguru import logger
 
-from oauth_cli_kit import get_token as get_codex_token
 from jsflow.llm_providers.base import LLMProvider, LLMResponse, ToolCallRequest
 
 DEFAULT_CODEX_URL = "https://chatgpt.com/backend-api/codex/responses"
 DEFAULT_ORIGINATOR = "efmc"
+DEFAULT_CODEX_AUTH_PATH = Path.home() / ".codex" / "auth.json"
 
 
 class OpenAICodexProvider(LLMProvider):
@@ -34,34 +35,34 @@ class OpenAICodexProvider(LLMProvider):
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         model: str | None = None,
-        max_tokens: int = 4096,
+        #max_tokens: int = 4096,
         temperature: float = 0.7,
     ) -> LLMResponse:
         model = model or self.default_model
         system_prompt, input_items = _convert_messages(messages)
 
-        token = await asyncio.to_thread(get_codex_token)
-        headers = _build_headers(token.account_id, token.access)
-
-        body: dict[str, Any] = {
-            "model": _strip_model_prefix(model),
-            "store": False,
-            "stream": True,
-            "instructions": system_prompt,
-            "input": input_items,
-            "text": {"verbosity": "medium"},
-            "include": ["reasoning.encrypted_content"],
-            "prompt_cache_key": _prompt_cache_key(messages),
-            "tool_choice": "auto",
-            "parallel_tool_calls": True,
-        }
-
-        if tools:
-            body["tools"] = _convert_tools(tools)
-
-        url = DEFAULT_CODEX_URL
-
         try:
+            account_id, access_token = await asyncio.to_thread(_get_auth_headers_credentials)
+            headers = _build_headers(account_id, access_token)
+
+            body: dict[str, Any] = {
+                "model": _strip_model_prefix(model),
+                "store": False,
+                "stream": True,
+                "instructions": system_prompt,
+                "input": input_items,
+                "text": {"verbosity": "medium"},
+                "include": ["reasoning.encrypted_content"],
+                "prompt_cache_key": _prompt_cache_key(messages),
+                "tool_choice": "auto",
+                "parallel_tool_calls": True,
+            }
+
+            if tools:
+                body["tools"] = _convert_tools(tools)
+
+            url = DEFAULT_CODEX_URL
+
             try:
                 content, tool_calls, finish_reason = await _request_codex(url, headers, body, verify=True)
             except Exception as e:
@@ -102,6 +103,29 @@ def _build_headers(account_id: str, token: str) -> dict[str, str]:
         "accept": "text/event-stream",
         "content-type": "application/json",
     }
+
+
+def _get_auth_headers_credentials() -> tuple[str, str]:
+    """Read request credentials from the Codex CLI auth.json file."""
+    return _load_codex_cli_auth()
+
+
+def _load_codex_cli_auth(path: Path = DEFAULT_CODEX_AUTH_PATH) -> tuple[str, str]:
+    """Read the current Codex CLI access token directly from ~/.codex/auth.json."""
+    if not path.exists():
+        raise RuntimeError(f"Codex auth file not found: {path}")
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"Failed to read Codex auth file: {path}") from exc
+
+    tokens = data.get("tokens") or {}
+    access_token = tokens.get("access_token")
+    account_id = tokens.get("account_id")
+    if not access_token or not account_id:
+        raise RuntimeError(f"Codex auth file is missing access_token or account_id: {path}")
+    return str(account_id), str(access_token)
 
 
 async def _request_codex(
@@ -330,3 +354,13 @@ def _friendly_error(status_code: int, raw: str) -> str:
     if status_code == 429:
         return "ChatGPT usage quota exceeded or rate limit triggered. Please try again later."
     return f"HTTP {status_code}: {raw}"
+
+
+
+if __name__ == "__main__":
+    async def main():
+        provider = OpenAICodexProvider()
+        response = await provider.chat(messages=[{"role": "user", "content": "Hello, how are you?"}])
+        print(response)
+
+    asyncio.run(main())
