@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .vuln.vul_checking import get_path_text
 REPORT_SCHEMA = "./report.schema.json"
-REPORT_VERSION = "1.1.0"
+REPORT_VERSION = "1.2.0"
 BUILTIN_PACKAGES_SEGMENT = "/builtin_packages/"
 
 
@@ -323,41 +323,158 @@ def _recover_oracle(vul_type: str, payload_candidates: list[dict]) -> dict:
     }
 
 
-def _build_poc_guidance(G, source_node, sink_node, exploit_reports):
-    entry_file = G.entry_file_path or source_node.get("file") or sink_node.get("file")
+def _infer_export_style(entry_text: str) -> str:
+    if re.search(r"\bmodule\.exports\b|\bexports\.", entry_text):
+        return "commonjs"
+    if re.search(r"^\s*export\b", entry_text, re.MULTILINE):
+        return "esm"
+    return "unknown"
+
+
+def _candidate_calls_from_nodes(source_node, sink_node) -> list[str]:
+    calls = []
+    for candidate in (
+        source_node.get("function") if source_node else None,
+        sink_node.get("function") if sink_node else None,
+    ):
+        if candidate and candidate not in calls:
+            calls.append(candidate)
+    return calls
+
+
+def _build_poc_finding(
+    G,
+    finding_id: str,
+    source_node,
+    sink_node,
+    path_nodes,
+    path_text: str,
+    exploit_reports,
+    *,
+    status_message: str,
+):
+    entry_file = G.entry_file_path or (source_node or {}).get("file") or (sink_node or {}).get("file")
     entry_path = Path(entry_file) if entry_file else None
     entry_text = _read_text(entry_path)
     export_metadata = _infer_export_metadata(entry_text)
     payload_candidates = _dedupe_payload_candidates(
         exploit_reports, export_metadata["source_symbol"]
     )
-    application_sink = _find_application_sink(entry_path, G.vul_type, source_node.get("line"))
-    require_path = f"./{entry_path.name}" if entry_path else ""
+    application_sink = _find_application_sink(
+        entry_path,
+        G.vul_type,
+        (source_node or {}).get("line"),
+    )
     sink_record = application_sink or {
-        "symbol": sink_node.get("function") or sink_node.get("type") or sink_node.get("id"),
-        "file": sink_node.get("file"),
-        "line": sink_node.get("line"),
-        "code": sink_node.get("code"),
+        "symbol": (sink_node or {}).get("function")
+        or (sink_node or {}).get("type")
+        or (sink_node or {}).get("id")
+        or "sink",
+        "file": (sink_node or {}).get("file"),
+        "line": (sink_node or {}).get("line"),
+        "code": (sink_node or {}).get("code"),
     }
+    require_path = f"./{entry_path.name}" if entry_path else ""
+    package_root = str(entry_path.parent) if entry_path else ""
+    package_name = os.path.basename(package_root) if package_root else ""
+    candidate_calls = export_metadata["candidate_calls"] or _candidate_calls_from_nodes(
+        source_node, sink_node
+    )
+    oracle = _recover_oracle(G.vul_type, payload_candidates)
+
     return {
-        "public_entrypoint": {
-            "symbol": export_metadata["source_symbol"],
-            "entry_file": entry_path.name if entry_path else None,
-            "package_root": str(entry_path.parent) if entry_path else None,
+        "finding_id": finding_id,
+        "normalized_from": "report",
+        "vulnerability_type": G.vul_type,
+        "target": {
+            "package_name": package_name,
+            "package_root": package_root,
+            "entry_file": entry_path.name if entry_path else "",
             "require_path": require_path,
             "entry_function": export_metadata["entry_function"],
             "exported_symbol_kind": export_metadata["exported_symbol_kind"],
+            "module_mode": bool(getattr(G, "run_all", False)),
+            "export_style": _infer_export_style(entry_text),
+            "is_async": False,
         },
         "invocation": {
             "mode": "direct_call",
-            "candidate_calls": export_metadata["candidate_calls"],
+            "candidate_calls": candidate_calls,
         },
-        "application_sink": sink_record,
-        "payload_candidates": payload_candidates,
-        "suggested_oracle": _recover_oracle(G.vul_type, payload_candidates),
+        "source": {
+            "kind": "tainted_flow",
+            "symbol": export_metadata["source_symbol"],
+            "file": (source_node or {}).get("file"),
+            "line": (source_node or {}).get("line"),
+        },
+        "sink": sink_record,
+        "trace": {
+            "path_text": path_text,
+            "nodes": [
+                {
+                    "id": node.get("id"),
+                    "file": node.get("file"),
+                    "line": node.get("line"),
+                    "code": node.get("code"),
+                }
+                for node in path_nodes
+                if node
+            ],
+        },
+        "constraints": {
+            "available": bool(payload_candidates),
+            "payload_candidates": payload_candidates,
+        },
+        "oracle": oracle,
+        "environment": {
+            "cwd": package_root,
+            "notes": "Recovered from canonical jsflow report output.",
+        },
         "validation": {
             "status": "not_run",
+            "run_command": "",
+            "observed_output": "",
         },
+        "raw_jsflow": {
+            "report_finding_id": finding_id,
+            "report_message": status_message,
+            "report_log_dir": getattr(G, "log_dir", None),
+        },
+        "assumptions": [
+            "Recovered from canonical jsflow report output.",
+            "Prefer jsflow-recovered PoC fields over downstream re-inference.",
+        ],
+    }
+
+
+def _build_poc_guidance(G, source_node, sink_node, exploit_reports):
+    poc = _build_poc_finding(
+        G,
+        finding_id="report-derived",
+        source_node=source_node,
+        sink_node=sink_node,
+        path_nodes=[],
+        path_text="",
+        exploit_reports=exploit_reports,
+        status_message="report-derived poc guidance",
+    )
+    return {
+        "public_entrypoint": {
+            "symbol": poc["source"]["symbol"],
+            "entry_file": poc["target"]["entry_file"] or None,
+            "package_root": poc["target"]["package_root"] or None,
+            "require_path": poc["target"]["require_path"],
+            "entry_function": poc["target"]["entry_function"],
+            "exported_symbol_kind": poc["target"]["exported_symbol_kind"],
+        },
+        "invocation": {
+            "mode": poc["invocation"]["mode"],
+            "candidate_calls": poc["invocation"]["candidate_calls"],
+        },
+        "application_sink": poc["sink"],
+        "payload_candidates": poc["constraints"]["payload_candidates"],
+        "suggested_oracle": poc["oracle"],
+        "validation": {"status": poc["validation"]["status"]},
     }
 
 
@@ -390,19 +507,32 @@ def build_analysis_report(
         source_node = _select_endpoint(path_nodes)
         sink_node = _select_endpoint(path_nodes, reverse=True)
         status_message = _build_message(status)
+        finding_id = f"jsflow/{G.vul_type}/{index + 1}"
+        path_text = get_path_text(G, list(path), path[-1])
+        poc_finding = _build_poc_finding(
+            G,
+            finding_id,
+            source_node,
+            sink_node,
+            path_nodes,
+            path_text,
+            exploit_reports,
+            status_message=status_message,
+        )
         findings.append(
             {
-                "id": f"jsflow/{G.vul_type}/{index + 1}",
+                "id": finding_id,
                 "rule_id": f"jsflow/{G.vul_type}",
                 "status": status,
                 "message": status_message,
                 "source": source_node,
                 "sink": sink_node,
+                "poc": poc_finding,
                 "poc_guidance": _build_poc_guidance(G, source_node, sink_node, exploit_reports),
                 "path": {
                     "node_ids": [str(node) for node in path],
                     "nodes": path_nodes,
-                    "text": get_path_text(G, list(path), path[-1]),
+                    "text": path_text,
                 },
                 "rule_evaluation": {
                     "matched": matched,
@@ -440,6 +570,7 @@ def build_analysis_report(
                     "message": _build_message("matched"),
                     "source": None,
                     "sink": _node_record(G, node_id),
+                    "poc": None,
                     "poc_guidance": None,
                     "path": None,
                     "rule_evaluation": {
@@ -461,6 +592,7 @@ def build_analysis_report(
                     "message": _build_message("matched"),
                     "source": _node_record(G, next(iter(sorted(G.ipt_write)), None)),
                     "sink": _node_record(G, node_id),
+                    "poc": None,
                     "poc_guidance": None,
                     "path": None,
                     "rule_evaluation": {

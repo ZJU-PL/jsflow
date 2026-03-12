@@ -105,6 +105,140 @@
       },
       "additionalProperties": true
     },
+    "pocFinding": {
+      "type": ["object", "null"],
+      "properties": {
+        "finding_id": { "type": "string" },
+        "normalized_from": { "type": "string" },
+        "vulnerability_type": { "type": "string" },
+        "target": {
+          "type": "object",
+          "properties": {
+            "package_name": { "type": "string" },
+            "package_root": { "type": "string" },
+            "entry_file": { "type": "string" },
+            "require_path": { "type": "string" },
+            "entry_function": { "type": ["string", "null"] },
+            "exported_symbol_kind": { "type": "string" },
+            "module_mode": { "type": "boolean" },
+            "export_style": { "type": "string" },
+            "is_async": { "type": "boolean" }
+          },
+          "additionalProperties": true
+        },
+        "invocation": {
+          "type": "object",
+          "properties": {
+            "mode": { "type": "string" },
+            "candidate_calls": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": true
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "kind": { "type": "string" },
+            "symbol": { "type": "string" },
+            "file": { "type": ["string", "null"] },
+            "line": { "type": ["integer", "null"] }
+          },
+          "additionalProperties": true
+        },
+        "sink": {
+          "type": "object",
+          "properties": {
+            "symbol": { "type": ["string", "null"] },
+            "file": { "type": ["string", "null"] },
+            "line": { "type": ["integer", "null"] },
+            "code": { "type": ["string", "null"] }
+          },
+          "additionalProperties": true
+        },
+        "trace": {
+          "type": "object",
+          "properties": {
+            "path_text": { "type": "string" },
+            "nodes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": ["string", "integer", "null"] },
+                  "file": { "type": ["string", "null"] },
+                  "line": { "type": ["integer", "null"] },
+                  "code": { "type": ["string", "null"] }
+                },
+                "additionalProperties": true
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "constraints": {
+          "type": "object",
+          "properties": {
+            "available": { "type": "boolean" },
+            "payload_candidates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "input": { "type": ["string", "null"] },
+                  "candidate": { "type": ["string", "number", "boolean", "object", "array", "null"] },
+                  "reason": { "type": ["string", "null"] }
+                },
+                "additionalProperties": true
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "oracle": {
+          "type": "object",
+          "properties": {
+            "type": { "type": ["string", "null"] },
+            "marker": { "type": ["string", "null"] },
+            "file_path": { "type": ["string", "null"] },
+            "notes": { "type": ["string", "null"] }
+          },
+          "additionalProperties": true
+        },
+        "environment": {
+          "type": "object",
+          "properties": {
+            "cwd": { "type": "string" },
+            "notes": { "type": "string" }
+          },
+          "additionalProperties": true
+        },
+        "validation": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string" },
+            "run_command": { "type": "string" },
+            "observed_output": { "type": "string" }
+          },
+          "additionalProperties": true
+        },
+        "raw_jsflow": {
+          "type": "object",
+          "properties": {
+            "report_finding_id": { "type": "string" },
+            "report_message": { "type": "string" },
+            "report_log_dir": { "type": ["string", "null"] }
+          },
+          "additionalProperties": true
+        },
+        "assumptions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
     "exploitResult": {
       "type": "object",
       "properties": {
@@ -151,6 +285,7 @@
         "message": { "type": "string" },
         "source": { "$ref": "#/$defs/node" },
         "sink": { "$ref": "#/$defs/node" },
+        "poc": { "$ref": "#/$defs/pocFinding" },
         "poc_guidance": {
           "type": ["object", "null"],
           "properties": {

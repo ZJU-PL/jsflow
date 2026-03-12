@@ -97,6 +97,13 @@ class TestReporting(unittest.TestCase):
             report["findings"][0]["poc_guidance"]["public_entrypoint"]["symbol"],
             "input",
         )
+        self.assertEqual(report["findings"][0]["poc"]["finding_id"], "jsflow/os_command/1")
+        self.assertEqual(report["findings"][0]["poc"]["normalized_from"], "report")
+        self.assertEqual(report["findings"][0]["poc"]["source"]["symbol"], "input")
+        self.assertEqual(
+            report["findings"][0]["poc"]["constraints"]["payload_candidates"][0]["candidate"],
+            "; touch /tmp/poc",
+        )
         self.assertEqual(
             report["findings"][0]["poc_guidance"]["application_sink"]["symbol"],
             "child_process.execSync",
@@ -115,7 +122,11 @@ class TestReporting(unittest.TestCase):
                 json_report = json.load(handle)
 
             self.assertEqual(json_report["summary"]["detection_status"], "successful")
-            self.assertEqual(json_report["version"], "1.1.0")
+            self.assertEqual(json_report["version"], "1.2.0")
+            self.assertEqual(
+                json_report["findings"][0]["poc"]["raw_jsflow"]["report_finding_id"],
+                "jsflow/os_command/1",
+            )
 
 
 if __name__ == "__main__":

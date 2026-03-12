@@ -20,33 +20,22 @@ At minimum, create `README-PoC.md` and one runnable artifact such as `poc.js`, `
 
 ## Inputs
 
-Prefer a normalized finding matching `finding.schema.json`.
+Prefer a canonical `jsflow` `report.json` finding emitted by `--json`, and treat `finding.poc` as the primary PoC-facing contract.
 
-If the input is a raw jsflow output instead, normalize it first with:
+If the input is a raw jsflow output instead, extract the required PoC fields inline as part of the workflow rather than relying on a separate normalization script.
 
-```bash
-python3 skills/jsflow-poc-generation/scripts/normalize_finding.py path/to/raw.json
-```
-
-The normalizer accepts:
-
-- already normalized findings,
-- `jsflow` `report.json` files emitted by `--json`,
-- raw jsflow summary objects,
-- or arrays of raw findings such as `taint_summary_detection.json`.
-
-When a `jsflow` report already contains `finding.poc_guidance`, prefer it over local guesswork. The skill should spend effort on PoC generation and validation, not on re-deriving entrypoints that jsflow already recovered.
+When a `jsflow` report already contains `finding.poc`, prefer it over local guesswork. Use `finding.poc_guidance` only as supporting detail when needed. The skill should spend effort on PoC generation and validation, not on re-deriving entrypoints that jsflow already recovered.
 
 See:
 
-- `finding.schema.json` for the normalized contract
-- `examples/finding.sample.json` for a normalized sample
-- `jsflow/report.schema.json` for the upstream jsflow report contract
-- `examples/raw_jsflow_summary.sample.json` for a raw input sample
+- `jsflow/report.schema.json` for the canonical jsflow report contract, including `finding.poc`
+- `finding.schema.json` for the PoC-oriented field checklist
+- `examples/finding.sample.json` for a PoC-oriented sample
+- `examples/raw_jsflow_summary.sample.json` for a raw input sample that may require manual field extraction
 
 ## Workflow
 
-### 1. Normalize and restate
+### 1. Restate the finding
 
 Extract or infer:
 

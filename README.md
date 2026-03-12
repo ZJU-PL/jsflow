@@ -119,20 +119,25 @@ The JSON report is written to the run log directory as:
 - `report.json`: canonical bug report data
 - `report.schema.json`: schema for the report format
 
-Each finding in `report.json` includes PoC-oriented guidance under `finding.poc_guidance`, such as:
+Each finding in `report.json` includes a normalized PoC-ready payload under `finding.poc`, plus compatibility guidance under `finding.poc_guidance`.
 
-- recovered public entrypoint
-- suggested invocation shape
-- recovered application sink
+The PoC-facing `finding.poc` object includes:
+
+- target package and entry file details
+- invocation mode and candidate call shapes
+- source and sink records
+- trace summary
 - deduplicated payload candidates
 - suggested oracle
+- validation state placeholders
 
 This is the intended workflow:
 
 ```bash
 python -m jsflow --json -m -X -t os_command package/index.js
-python3 skills/jsflow-poc-generation/scripts/normalize_finding.py logs/<timestamp>/report.json --index 0
 ```
+
+Then feed a finding from `logs/<timestamp>/report.json` directly into the PoC workflow in `skills/jsflow-poc-generation/`.
 
 See [docs/USAGE.md](docs/USAGE.md) for detailed usage instructions, examples, and advanced configuration.
 
