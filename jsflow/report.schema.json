@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/jsflow/report.schema.json",
+  "title": "jsflow Analysis Report",
+  "type": "object",
+  "required": ["$schema", "version", "tool", "run", "summary", "findings"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "tool": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "run": {
+      "type": "object",
+      "required": ["vulnerability_type", "auto_exploit", "log_dir"],
+      "properties": {
+        "input_file": { "type": ["string", "null"] },
+        "entry_file": { "type": ["string", "null"] },
+        "vulnerability_type": { "type": "string" },
+        "module_mode": { "type": "boolean" },
+        "auto_exploit": { "type": "boolean" },
+        "started_at": { "type": "string" },
+        "finished_at": { "type": "string" },
+        "log_dir": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "summary": {
+      "type": "object",
+      "required": ["detection_status", "exploit_status", "total_findings"],
+      "properties": {
+        "detection_status": {
+          "type": "string",
+          "enum": ["successful", "failed"]
+        },
+        "exploit_status": {
+          "type": "string",
+          "enum": ["successful", "failed", "turned_off"]
+        },
+        "candidate_paths": { "type": "integer" },
+        "matched_findings": { "type": "integer" },
+        "total_findings": { "type": "integer" },
+        "vulnerable_files": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "exploit_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/exploitResult"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    }
+  },
+  "$defs": {
+    "snippet": {
+      "type": ["object", "null"],
+      "properties": {
+        "start_line": { "type": "integer" },
+        "end_line": { "type": "integer" },
+        "text": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "node": {
+      "type": ["object", "null"],
+      "properties": {
+        "id": { "type": "string" },
+        "file": { "type": ["string", "null"] },
+        "line": { "type": ["integer", "null"] },
+        "end_line": { "type": ["integer", "null"] },
+        "label": { "type": ["string", "null"] },
+        "type": { "type": ["string", "null"] },
+        "function": { "type": ["string", "null"] },
+        "builtin": { "type": "boolean" },
+        "code": { "type": ["string", "null"] },
+        "snippet": { "$ref": "#/$defs/snippet" }
+      },
+      "additionalProperties": true
+    },
+    "binding": {
+      "type": "object",
+      "properties": {
+        "symbol": { "type": ["string", "null"] },
+        "name": { "type": ["string", "null"] },
+        "value": { "type": ["string", "null"] },
+        "role": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "exploitResult": {
+      "type": "object",
+      "properties": {
+        "sink_function": { "type": ["string", "null"] },
+        "source_name": { "type": ["string", "null"] },
+        "payload": { "type": ["string", "null"] },
+        "status": { "type": ["string", "null"] },
+        "bindings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/binding" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "ruleResult": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "arguments": {},
+        "passed": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "ruleListResult": {
+      "type": "object",
+      "properties": {
+        "rule_list_index": { "type": "integer" },
+        "matched": { "type": "boolean" },
+        "first_failed_rule": { "type": ["string", "null"] },
+        "rules": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ruleResult" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "finding": {
+      "type": "object",
+      "required": ["id", "rule_id", "status", "message"],
+      "properties": {
+        "id": { "type": "string" },
+        "rule_id": { "type": "string" },
+        "status": { "type": "string" },
+        "message": { "type": "string" },
+        "source": { "$ref": "#/$defs/node" },
+        "sink": { "$ref": "#/$defs/node" },
+        "poc_guidance": {
+          "type": ["object", "null"],
+          "properties": {
+            "public_entrypoint": {
+              "type": "object",
+              "properties": {
+                "symbol": { "type": ["string", "null"] },
+                "entry_file": { "type": ["string", "null"] },
+                "package_root": { "type": ["string", "null"] },
+                "require_path": { "type": ["string", "null"] },
+                "entry_function": { "type": ["string", "null"] },
+                "exported_symbol_kind": { "type": ["string", "null"] }
+              },
+              "additionalProperties": true
+            },
+            "invocation": {
+              "type": "object",
+              "properties": {
+                "mode": { "type": ["string", "null"] },
+                "candidate_calls": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              },
+              "additionalProperties": true
+            },
+            "application_sink": { "$ref": "#/$defs/node" },
+            "payload_candidates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "input": { "type": ["string", "null"] },
+                  "candidate": { "type": ["string", "number", "boolean", "object", "array", "null"] },
+                  "reason": { "type": ["string", "null"] }
+                },
+                "additionalProperties": true
+              }
+            },
+            "suggested_oracle": {
+              "type": "object",
+              "properties": {
+                "type": { "type": ["string", "null"] },
+                "marker": { "type": ["string", "null"] },
+                "file_path": { "type": ["string", "null"] },
+                "notes": { "type": ["string", "null"] }
+              },
+              "additionalProperties": true
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "status": { "type": ["string", "null"] }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "path": {
+          "type": ["object", "null"],
+          "properties": {
+            "node_ids": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "nodes": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/node" }
+            },
+            "text": { "type": ["string", "null"] }
+          },
+          "additionalProperties": true
+        },
+        "rule_evaluation": {
+          "type": "object",
+          "properties": {
+            "matched": { "type": "boolean" },
+            "matched_rule_list": { "type": ["integer", "null"] },
+            "rule_lists": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/ruleListResult" }
+            }
+          },
+          "additionalProperties": true
+        },
+        "exploit_candidates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/exploitResult" }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

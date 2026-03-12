@@ -1,0 +1,4 @@
+interface:
+  display_name: "JSFlow PoC Generation"
+  short_description: "Turn jsflow findings into runnable JavaScript PoCs"
+  default_prompt: "Use $jsflow-poc-generation to turn this jsflow finding into the smallest validated PoC."

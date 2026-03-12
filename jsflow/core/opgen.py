@@ -5788,18 +5788,39 @@ def call_function(
                 logger.info(f"{sty.ef.inverse}Results #{i+1}:{sty.rs.all}")
                 if results:
                     success = False
+                    attempt_report = {
+                        "sink_function": func_name,
+                        "source_name": G.cur_source_name,
+                        "payload": payload,
+                        "status": "partial",
+                        "bindings": [],
+                    }
                     for k, (name, v) in results.items():
+                        role = "intermediate"
                         if G.get_node_attr(k[1:]).get("fake_arg"):
                             if G.solve_from in str(v) or str(v) in G.solve_from:
                                 success = True
                                 G.success_exploit = True
+                            role = "input"
                             logger.info(
                                 f"{sty.fg.green}{sty.ef.b}INPUT{sty.rs.ef} {name}({k}){sty.rs.all} = {v}"
                             )
                         elif k[1:] in handled_arg.obj_nodes:
+                            role = "sink"
                             logger.info(f"{sty.ef.b}SINK{sty.rs.all} {name}({k}) = {v}")
                         else:
                             logger.info(f"{name}({k}) = {v}")
+                        attempt_report["bindings"].append(
+                            {
+                                "symbol": k,
+                                "name": name,
+                                "value": str(v),
+                                "role": role,
+                            }
+                        )
+                    if success:
+                        attempt_report["status"] = "solved"
+                    G.exploit_reports.append(attempt_report)
                     if success:
                         logger.info(
                             sty.fg.green
@@ -5812,6 +5833,15 @@ def call_function(
                         )
                     # logger.info(f'Current arguments: {G.cur_fake_args}')
                 else:
+                    G.exploit_reports.append(
+                        {
+                            "sink_function": func_name,
+                            "source_name": G.cur_source_name,
+                            "payload": payload,
+                            "status": "failed",
+                            "bindings": [],
+                        }
+                    )
                     logger.debug("No result.")
             G.solve_from = None
         if G.interactive:

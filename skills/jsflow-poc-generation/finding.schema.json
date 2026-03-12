@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/jsflow-poc-finding.schema.json",
+  "title": "Normalized jsflow Finding for PoC Generation",
+  "type": "object",
+  "required": ["vulnerability_type", "target"],
+  "properties": {
+    "finding_id": {
+      "type": "string"
+    },
+    "normalized_from": {
+      "type": "string",
+      "enum": ["manual", "raw_jsflow", "taint_summary_detection", "taint_summary", "report", "unknown"]
+    },
+    "vulnerability_type": {
+      "type": "string",
+      "enum": [
+        "os_command",
+        "xss",
+        "code_exec",
+        "proto_pollution",
+        "int_prop_tampering",
+        "path_traversal",
+        "nosql"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "required": ["entry_file"],
+      "properties": {
+        "package_name": { "type": "string" },
+        "package_root": { "type": "string" },
+        "entry_file": { "type": "string" },
+        "require_path": { "type": "string" },
+        "entry_function": { "type": ["string", "null"] },
+        "exported_symbol_kind": {
+          "type": "string",
+          "enum": ["function", "class", "object", "default_export", "side_effect_only", "unknown"]
+        },
+        "module_mode": { "type": "boolean" },
+        "export_style": {
+          "type": "string",
+          "enum": ["commonjs", "esm", "unknown"]
+        },
+        "is_async": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "invocation": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "direct_call",
+            "constructor",
+            "module_init",
+            "callback",
+            "cli",
+            "http_route",
+            "unknown"
+          ]
+        },
+        "arg_shape": { "type": "string" },
+        "candidate_calls": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "http_method": { "type": "string" },
+        "http_path": { "type": "string" },
+        "input_location": { "type": "string" },
+        "start_command": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string" },
+        "symbol": { "type": "string" },
+        "file": { "type": "string" },
+        "line": { "type": ["integer", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "sink": {
+      "type": "object",
+      "properties": {
+        "symbol": { "type": "string" },
+        "file": { "type": "string" },
+        "line": { "type": ["integer", "null"] },
+        "code": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "trace": {
+      "type": "object",
+      "properties": {
+        "path_text": { "type": "string" },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": ["string", "integer"] },
+              "file": { "type": "string" },
+              "line": { "type": ["integer", "null"] },
+              "code": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "constraints": {
+      "type": "object",
+      "properties": {
+        "available": { "type": "boolean" },
+        "payload_candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "input": { "type": "string" },
+              "candidate": { "type": ["string", "number", "boolean", "object", "array", "null"] },
+              "reason": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "oracle": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "stdout",
+            "file_exists",
+            "response_contains",
+            "property_polluted",
+            "return_value",
+            "side_effect",
+            "custom"
+          ]
+        },
+        "marker": { "type": "string" },
+        "file_path": { "type": "string" },
+        "property_name": { "type": "string" },
+        "response_substring": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "node_version": { "type": "string" },
+        "package_manager": { "type": "string" },
+        "install_command": { "type": "string" },
+        "start_command": { "type": "string" },
+        "cwd": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["not_run", "validated", "failed", "blocked"]
+        },
+        "run_command": { "type": "string" },
+        "observed_output": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "raw_jsflow": {
+      "type": "object",
+      "properties": {
+        "filename": { "type": "string" },
+        "vuln_type": { "type": "string" },
+        "sink": { "type": "string" },
+        "sink_lineno": { "type": ["integer", "null"] },
+        "path_text": { "type": "string" },
+        "log_path": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,17 @@
+const targetModule = await import("{{TARGET_IMPORT_PATH}}");
+
+async function main() {
+  const payload = {{PAYLOAD_EXPRESSION}};
+  const result = await {{INVOCATION_SNIPPET}};
+
+  if ({{ORACLE_CHECK_EXPRESSION}}) {
+    console.log("{{SUCCESS_MARKER}}");
+  }
+
+  return result;
+}
+
+main().catch((err) => {
+  console.error("PoC failed:", err);
+  process.exit(1);
+});

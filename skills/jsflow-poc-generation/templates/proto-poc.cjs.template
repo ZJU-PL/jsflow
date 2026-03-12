@@ -1,0 +1,13 @@
+const target = require("{{TARGET_REQUIRE_PATH}}");
+
+function main() {
+  console.log("before:", {}.{{PROPERTY_NAME}});
+  {{INVOCATION_SNIPPET}}
+  console.log("after:", {}.{{PROPERTY_NAME}});
+
+  if ({}.{{PROPERTY_NAME}} === {{EXPECTED_VALUE_EXPRESSION}}) {
+    console.log("{{SUCCESS_MARKER}}");
+  }
+}
+
+main();

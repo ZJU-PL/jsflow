@@ -206,6 +206,8 @@ class Graph:
 
         self.success_detect = False
         self.success_exploit = False
+        self.exploit_reports = []
+        self.last_report = None
 
         # control flow & data flow
         self.last_stmts = []

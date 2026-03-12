@@ -1,0 +1,7 @@
+{{PRELUDE}}
+
+require("{{TARGET_REQUIRE_PATH}}");
+
+if ({{ORACLE_CHECK_EXPRESSION}}) {
+  console.log("{{SUCCESS_MARKER}}");
+}

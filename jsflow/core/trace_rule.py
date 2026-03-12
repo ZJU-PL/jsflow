@@ -561,8 +561,12 @@ class TraceRule(TraceRuleInterface):
         Returns:
             bool: True if the path satisfies the rule, False otherwise
         """
-        # print("checking path", path)
-        res = self.trace_rule.check(path)
-        if not res:
-             print(f"Rule {self.trace_rule.key} failed for path {path}")
-        return res
+        return self.evaluate(path)["passed"]
+
+    def evaluate(self, path):
+        """Return structured rule evaluation details for a path."""
+        return {
+            "name": self.trace_rule.key,
+            "arguments": self.trace_rule.value,
+            "passed": bool(self.trace_rule.check(path)),
+        }

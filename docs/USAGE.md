@@ -41,6 +41,8 @@ python -m jsflow -p input.js
 - `-C, --rcf, --rough-control-flow`: Enable rough control flow analysis
 - `-D, --rcd, --rough-call-distance`: Enable rough call distance
 - `-X, --exploit, --auto-exploit`: Enable automatic exploit generation
+- `--json`: Write a structured JSON report to the run log directory
+- `--report-dir`: Override the output directory for structured reports
 - `-1, --coarse-only`: Coarse analysis only
 
 ## Programmatic Usage
@@ -115,6 +117,27 @@ When using the `-X` (auto-exploit) flag, jsflow will attempt to generate concret
 python -m jsflow -X -t os_command vulnerable.js
 ```
 
+### Example 4: Structured Reports
+
+Use structured reporting when you want downstream tools or LLM workflows to consume findings directly:
+
+```bash
+python -m jsflow --json -t os_command vulnerable.js
+```
+
+This writes:
+
+- `report.json` - canonical jsflow finding data with code snippets, rule diagnostics, and exploit candidates
+- `report.schema.json` - the schema for `report.json`
+
+Each finding in `report.json` also includes a `poc_guidance` block with PoC-oriented guidance such as:
+
+- recovered public entrypoint
+- suggested invocation shape
+- application-level sink
+- deduplicated payload candidates
+- suggested oracle
+
 The solver builds constraints from operations like:
 - String concatenation: `result = "prefix" + userInput + "suffix"`
 - Numeric addition: `result = baseValue + userInput`
@@ -141,4 +164,3 @@ The solver builds constraints from operations like:
 - **Module Mode** (`-m`): Treats input as an npm module, analyzing exported functions and handling `require()` statements.
 
 - **Entry Function** (`-e`): Specifies which function to use as the entry point for analysis.
-

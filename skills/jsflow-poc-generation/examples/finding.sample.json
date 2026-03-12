@@ -1,0 +1,81 @@
+{
+  "finding_id": "demo-os-command-001",
+  "normalized_from": "report",
+  "vulnerability_type": "os_command",
+  "target": {
+    "package_name": "demo-package",
+    "package_root": ".",
+    "entry_file": "index.js",
+    "require_path": "./index.js",
+    "entry_function": "runCommand",
+    "exported_symbol_kind": "function",
+    "module_mode": true,
+    "export_style": "commonjs",
+    "is_async": false
+  },
+  "invocation": {
+    "mode": "direct_call",
+    "arg_shape": "string",
+    "candidate_calls": [
+      "target.runCommand(payload)"
+    ]
+  },
+  "source": {
+    "kind": "user_input",
+    "symbol": "req.query.cmd",
+    "file": "index.js",
+    "line": 8
+  },
+  "sink": {
+    "symbol": "child_process.exec",
+    "file": "index.js",
+    "line": 12,
+    "code": "exec('echo ' + cmd)"
+  },
+  "trace": {
+    "path_text": "req.query.cmd -> cmd -> buildCommand(cmd) -> exec(command)",
+    "nodes": [
+      {
+        "id": "src1",
+        "file": "index.js",
+        "line": 8,
+        "code": "const cmd = req.query.cmd;"
+      },
+      {
+        "id": "sink1",
+        "file": "index.js",
+        "line": 12,
+        "code": "exec('echo ' + cmd);"
+      }
+    ]
+  },
+  "constraints": {
+    "available": true,
+    "payload_candidates": [
+      {
+        "input": "cmd",
+        "candidate": "&& echo JSFLOW_POC_SUCCESS"
+      }
+    ]
+  },
+  "oracle": {
+    "type": "stdout",
+    "marker": "JSFLOW_POC_SUCCESS",
+    "notes": "The injected command should print the marker to stdout."
+  },
+  "environment": {
+    "node_version": ">=18",
+    "package_manager": "npm",
+    "install_command": "npm install",
+    "cwd": ".",
+    "notes": "Direct exported function call is sufficient."
+  },
+  "validation": {
+    "status": "not_run",
+    "run_command": "node poc.js",
+    "observed_output": ""
+  },
+  "assumptions": [
+    "The vulnerable package can be imported directly with require('./index.js')."
+  ]
+}

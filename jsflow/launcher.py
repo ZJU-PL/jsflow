@@ -4,6 +4,7 @@ It is used to parse the command line arguments and run the analysis.
 """
 
 import argparse
+import logging
 import os
 import sys
 import time
@@ -18,6 +19,7 @@ from .core.opgen import (
     analyze_string,
     generate_obj_graph,
 )
+from .reporting import build_analysis_report, write_reports
 from .vuln.vul_checking import traceback, vul_checking, get_path_text
 
 
@@ -257,6 +259,15 @@ def main():
     parser.add_argument("-i", "--interactive", action="store_true")
     parser.add_argument("-1", "--coarse-only", action="store_true")
     parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Write a structured JSON analysis report to the log directory.",
+    )
+    parser.add_argument(
+        "--report-dir",
+        help="Directory for structured reports. Defaults to this run's log directory.",
+    )
+    parser.add_argument(
         "input_file",
         action="store",
         nargs="?",
@@ -407,19 +418,24 @@ def main():
             )
         print(G.ipt_use)
 
+    candidate_paths = []
+    detection_diagnostics = []
     if G.vul_type not in ["proto_pollution", "int_prop_tampering"]:
         logger.debug(sty.ef.inverse + G.vul_type + sty.rs.all)
         res_path = traceback(G, G.vul_type)
+        candidate_paths = res_path[0]
 
         logger.debug("ResPath0:")
         logger.debug(res_path[0])
         logger.debug("ResPath1:")
         logger.debug(res_path[1])
 
-        res_pathes = vul_checking(G, res_path[0], G.vul_type)
+        res_pathes, detection_diagnostics = vul_checking(
+            G, res_path[0], G.vul_type, return_diagnostics=True
+        )
         print(res_pathes)
         for path in res_pathes:
-            res_text_path = get_path_text(G, path, path[0])
+            res_text_path = get_path_text(G, path, path[-1])
             print("Attack Path: ")
             print(res_text_path)
 
@@ -547,3 +563,22 @@ def main():
         + f"{len(G.total_calls)}"
     )
     print(sty.fg.li_magenta + f"Number of Rerun: " + sty.rs.all + f"{G.rerun_counter}")
+
+    if args.json:
+        report = build_analysis_report(
+            G,
+            args,
+            started_at=start_time,
+            candidate_paths=candidate_paths,
+            rule_diagnostics=detection_diagnostics,
+            exploit_reports=G.exploit_reports,
+        )
+        report_dir = args.report_dir or G.log_dir
+        written = write_reports(
+            report,
+            report_dir,
+            emit_json=args.json,
+        )
+        G.last_report = report
+        for kind, path in written.items():
+            print(sty.ef.b + f"{kind.upper()} report: {path}" + sty.rs.all)

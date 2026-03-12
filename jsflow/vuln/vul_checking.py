@@ -161,9 +161,9 @@ def traceback(G, vul_type, start_node=None):
                 #print('--', upper_nodes)
             """
             for path in pathes:
-                ret_pathes.append(path)
-                path.reverse()
-                res_path += get_path_text(G, path, caller)
+                ordered_path = list(reversed(path))
+                ret_pathes.append(ordered_path)
+                res_path += get_path_text(G, ordered_path, caller)
     return ret_pathes, res_path, caller_list
 
 
@@ -227,7 +227,6 @@ def do_vul_checking(G, rule_list, pathes):
         trace_rules.append(TraceRule(rule[0], rule[1], G))
 
     success_pathes = []
-    flag = True
     for path in pathes:
         flag = True
         for trace_rule in trace_rules:
@@ -239,7 +238,21 @@ def do_vul_checking(G, rule_list, pathes):
     return success_pathes
 
 
-def vul_checking(G, pathes, vul_type):
+def _evaluate_rule_list(G, rule_list, path):
+    """Evaluate a single rule list against a path and keep per-rule diagnostics."""
+    trace_rules = [TraceRule(rule[0], rule[1], G) for rule in rule_list]
+    evaluations = []
+    matched = True
+    for trace_rule in trace_rules:
+        result = trace_rule.evaluate(path)
+        evaluations.append(result)
+        if not result["passed"]:
+            matched = False
+            break
+    return matched, evaluations
+
+
+def vul_checking(G, pathes, vul_type, return_diagnostics=False):
     """
     Filter paths to identify those that satisfy vulnerability detection rules.
 
@@ -415,6 +428,7 @@ def vul_checking(G, pathes, vul_type):
 
     rule_lists = vul_type_map[vul_type]
     success_paths = []
+    diagnostics = []
     print("vul_checking", vul_type)
     """
     print(pathes)
@@ -422,10 +436,35 @@ def vul_checking(G, pathes, vul_type):
         for node in path:
             print(G.get_node_attr(node))
     """
-    for rule_list in rule_lists:
-        success_paths += do_vul_checking(G, rule_list, pathes)
-    # success_paths = list(map(lambda path: G.extend_path_by_cf(path), success_paths))
+    for path in pathes:
+        path_diagnostic = {
+            "path": list(path),
+            "matched": False,
+            "matched_rule_list": None,
+            "rule_lists": [],
+        }
+        for index, rule_list in enumerate(rule_lists):
+            matched, evaluations = _evaluate_rule_list(G, rule_list, path)
+            path_diagnostic["rule_lists"].append(
+                {
+                    "rule_list_index": index,
+                    "matched": matched,
+                    "rules": evaluations,
+                    "first_failed_rule": next(
+                        (rule["name"] for rule in evaluations if not rule["passed"]),
+                        None,
+                    ),
+                }
+            )
+            if matched and not path_diagnostic["matched"]:
+                path_diagnostic["matched"] = True
+                path_diagnostic["matched_rule_list"] = index
+                success_paths.append(path)
+        diagnostics.append(path_diagnostic)
+
     print("success: ", success_paths)
+    if return_diagnostics:
+        return success_paths, diagnostics
     return success_paths
 
 

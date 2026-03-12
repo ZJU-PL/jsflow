@@ -1,6 +1,6 @@
 # jsflow
 
-**jsflow** is a static analysis tool for JavaScript that performs vulnerability detection and exploit generation through object graph generation. The core analysis engine is implemented in the `jsflow` module.
+**jsflow** is a static analysis tool for JavaScript that performs vulnerability detection and exploit generation through object graph generation. Its canonical machine-readable output is `report.json`, which is designed to feed downstream workflows such as PoC generation.
 
 ## Overview
 
@@ -16,6 +16,7 @@ jsflow is a JavaScript static analysis framework that:
   - Internal property tampering
   - Path traversal
   - NoSQL injection
+- **Emits canonical JSON bug reports** with source snippets, path diagnostics, exploit candidates, and PoC-oriented guidance
 - **Exports analysis results** to CSV/TSV format for further processing
 - **Supports module analysis** for npm packages
 
@@ -103,6 +104,9 @@ python -m jsflow input.js
 # Analyze with specific vulnerability type
 python -m jsflow -t os_command input.js
 
+# Emit a canonical JSON report
+python -m jsflow --json -t os_command input.js
+
 # Check for prototype pollution
 python -m jsflow -P input.js
 
@@ -110,11 +114,32 @@ python -m jsflow -P input.js
 python -m jsflow --no-builtin-packages input.js
 ```
 
+The JSON report is written to the run log directory as:
+
+- `report.json`: canonical bug report data
+- `report.schema.json`: schema for the report format
+
+Each finding in `report.json` includes PoC-oriented guidance under `finding.poc_guidance`, such as:
+
+- recovered public entrypoint
+- suggested invocation shape
+- recovered application sink
+- deduplicated payload candidates
+- suggested oracle
+
+This is the intended workflow:
+
+```bash
+python -m jsflow --json -m -X -t os_command package/index.js
+python3 skills/jsflow-poc-generation/scripts/normalize_finding.py logs/<timestamp>/report.json --index 0
+```
+
 See [docs/USAGE.md](docs/USAGE.md) for detailed usage instructions, examples, and advanced configuration.
 
 ## Documentation
 
 - **[Architecture](docs/ARCHITECTURE.md)**: Detailed architecture, how it works, and output format
-- **[Usage Guide](docs/USAGE.md)**: Command-line options, programmatic usage, examples, and advanced configuration
+- **[Usage Guide](docs/USAGE.md)**: Command-line options, canonical JSON reporting, programmatic usage, and examples
 - **[Vulnerability Types](docs/VULNERABILITIES.md)**: Detailed information about each vulnerability type with examples
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)**: Limitations, common issues, debugging tips, and references
+- **[PoC Skill](skills/jsflow-poc-generation/SKILL.md)**: Agent skill for turning `report.json` findings into runnable PoCs

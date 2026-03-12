@@ -1,0 +1,8 @@
+[
+  {
+    "filename": "/tmp/demo-package/index.js",
+    "vuln_type": "command-injection",
+    "sink": "exec(command)",
+    "sink_lineno": 12
+  }
+]
