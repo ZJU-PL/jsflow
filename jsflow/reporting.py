@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .vuln.vul_checking import get_path_text
 REPORT_SCHEMA = "./report.schema.json"
-REPORT_VERSION = "1.2.0"
+REPORT_VERSION = "1.3.0"
 BUILTIN_PACKAGES_SEGMENT = "/builtin_packages/"
 
 
@@ -342,6 +342,339 @@ def _candidate_calls_from_nodes(source_node, sink_node) -> list[str]:
     return calls
 
 
+def _line_role(index: int, total: int) -> str:
+    if index == 0:
+        return "source"
+    if index == total - 1:
+        return "sink"
+    return "propagation"
+
+
+def _build_hybrid_thin_slice(path_nodes, source_node, sink_node, path_text: str) -> dict:
+    spans = []
+    seen = set()
+    visible_nodes = [node for node in path_nodes if node]
+    total = len(visible_nodes)
+    for index, node in enumerate(visible_nodes):
+        file_path = node.get("file")
+        line = node.get("line")
+        key = (file_path, line, node.get("end_line"), node.get("code"))
+        if key in seen:
+            continue
+        seen.add(key)
+        spans.append(
+            {
+                "file": file_path,
+                "start_line": line,
+                "end_line": node.get("end_line") or line,
+                "role": _line_role(index, total),
+                "symbol": node.get("function"),
+                "code": node.get("code"),
+            }
+        )
+
+    source_code = (source_node or {}).get("code") or (source_node or {}).get("function")
+    sink_code = (sink_node or {}).get("code") or (sink_node or {}).get("function")
+    data_dependencies = []
+    if source_code and sink_code:
+        data_dependencies.append(f"{source_code} -> {sink_code}")
+    elif source_code:
+        data_dependencies.append(str(source_code))
+    elif sink_code:
+        data_dependencies.append(str(sink_code))
+
+    return {
+        "kind": "hybrid_thin_slice",
+        "graph_slice": {
+            "node_ids": [node.get("id") for node in visible_nodes],
+            "edge_focus": ["OBJ_REACHES", "CONTRIBUTES_TO", "CALLS"],
+            "source_node_id": (source_node or {}).get("id"),
+            "sink_node_id": (sink_node or {}).get("id"),
+        },
+        "source_slice": {
+            "required_spans": spans,
+            "path_text": path_text,
+            "irrelevant_spans_removed": True,
+        },
+        "runtime_slice": {
+            "entrypoint_needed": True,
+            "mock_sink_recommended": True,
+            "control_dependencies": [],
+            "data_dependencies": data_dependencies,
+        },
+    }
+
+
+def _load_package_json(package_root: str) -> dict:
+    if not package_root:
+        return {}
+    package_json = Path(package_root) / "package.json"
+    if not package_json.exists():
+        return {}
+    try:
+        return json.loads(package_json.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {}
+
+
+def _package_manager_hint(package_root: str) -> str:
+    if not package_root:
+        return "unknown"
+    root = Path(package_root)
+    if (root / "pnpm-lock.yaml").exists():
+        return "pnpm"
+    if (root / "yarn.lock").exists():
+        return "yarn"
+    if (root / "package-lock.json").exists():
+        return "npm"
+    if (root / "bun.lockb").exists() or (root / "bun.lock").exists():
+        return "bun"
+    return "npm" if (root / "package.json").exists() else "unknown"
+
+
+def _install_command(package_manager: str) -> str:
+    return {
+        "npm": "npm install",
+        "yarn": "yarn install",
+        "pnpm": "pnpm install",
+        "bun": "bun install",
+    }.get(package_manager, "")
+
+
+def _mock_recommendations(vul_type: str, sink_record: dict) -> list[str]:
+    symbol = str((sink_record or {}).get("symbol") or "")
+    if vul_type == "os_command" or "child_process" in symbol:
+        return ["child_process.exec", "child_process.execSync", "child_process.spawn"]
+    if vul_type == "path_traversal" or symbol.startswith("fs."):
+        return ["fs.readFile", "fs.readFileSync"]
+    if vul_type == "nosql":
+        return ["mongodb collection query method"]
+    if vul_type == "xss":
+        return ["response send/write/end method"]
+    if vul_type == "code_exec":
+        return ["eval", "Function", "console.log"]
+    return []
+
+
+def _runtime_environment(package_root: str, entry_file: str, vul_type: str, sink_record: dict) -> dict:
+    package = _load_package_json(package_root)
+    package_manager = _package_manager_hint(package_root)
+    scripts = package.get("scripts") if isinstance(package.get("scripts"), dict) else {}
+    engines = package.get("engines") if isinstance(package.get("engines"), dict) else {}
+    required_files = []
+    if entry_file:
+        required_files.append(entry_file)
+    if package:
+        required_files.append("package.json")
+    return {
+        "cwd": package_root,
+        "package_manager": package_manager,
+        "install_command": _install_command(package_manager),
+        "node_version_hint": engines.get("node") or "unknown",
+        "needs_build": "build" in scripts,
+        "build_command": f"{package_manager} run build" if "build" in scripts and package_manager != "unknown" else "",
+        "required_files": required_files,
+        "external_services": ["mongodb"] if vul_type == "nosql" else [],
+        "mock_recommended": _mock_recommendations(vul_type, sink_record),
+        "notes": "Prefer mocks for dangerous or external side effects when validating PoCs.",
+    }
+
+
+def _entrypoint_contract(export_metadata: dict, candidate_calls: list[str], payload_candidates: list[dict], entry_text: str) -> dict:
+    payload_example = (
+        payload_candidates[0].get("candidate")
+        if payload_candidates
+        else "PAYLOAD"
+    )
+    return {
+        "module_system": _infer_export_style(entry_text),
+        "require_path": "",
+        "call_shapes": candidate_calls,
+        "preferred_call": candidate_calls[0] if candidate_calls else "",
+        "argument_schema": {
+            "type": "unknown",
+            "tainted_argument": {
+                "symbol": export_metadata["source_symbol"],
+                "example": payload_example,
+            },
+        },
+        "async": {
+            "kind": "unknown",
+            "settle_strategy": "Run synchronously first; await returned Promise or callback if runtime behavior requires it.",
+        },
+    }
+
+
+def _payload_sink_expectation(vul_type: str) -> str:
+    return {
+        "os_command": "Command argument reaches a child_process shell/command sink with the marker payload intact.",
+        "code_exec": "Payload reaches eval/Function-like code execution sink as executable JavaScript.",
+        "path_traversal": "Path argument preserves traversal marker when it reaches the filesystem sink.",
+        "xss": "Payload reaches response body or header without output encoding.",
+        "nosql": "Payload reaches database query construction without operator/key sanitization.",
+    }.get(vul_type, "Payload reaches the reported sink without an effective sanitizer.")
+
+
+def _payload_contract(G, payload_candidates: list[dict], path_nodes, sink_record: dict) -> dict:
+    best = payload_candidates[0] if payload_candidates else {}
+    trace_codes = []
+    for node in path_nodes:
+        code = (node or {}).get("code")
+        if code and code not in trace_codes:
+            trace_codes.append(code)
+    constraints = []
+    if payload_candidates:
+        constraints.append("Use a payload candidate recovered from jsflow exploit solving.")
+    else:
+        constraints.append("No concrete solver payload was recovered; choose a short marker payload for the vulnerability class.")
+    constraints.append("Place the payload in the tainted source binding, not directly at the sink.")
+    return {
+        "source_binding": best.get("input") or "input",
+        "payload": best.get("candidate"),
+        "sink": sink_record,
+        "sink_expectation": _payload_sink_expectation(G.vul_type),
+        "constraints": constraints,
+        "transform_chain": trace_codes,
+    }
+
+
+def _validation_oracle(vul_type: str, payload_candidates: list[dict], sink_record: dict) -> dict:
+    fallback = _recover_oracle(vul_type, payload_candidates)
+    symbol = (sink_record or {}).get("symbol") or "reported sink"
+    preferred = {
+        "type": "mock_sink_call",
+        "sink_symbol": symbol,
+        "assertion": f"Intercept {symbol} and assert one argument contains the payload marker.",
+        "notes": "Mocking the sink is safer and usually more stable than executing the side effect.",
+    }
+    if vul_type == "xss":
+        preferred = {
+            "type": "response_contains",
+            "sink_symbol": symbol,
+            "assertion": "Assert the response body/header contains the marker unescaped.",
+            "notes": "A mocked response object can capture send/write/end arguments.",
+        }
+    elif vul_type == "path_traversal":
+        preferred = {
+            "type": "mock_fs_call",
+            "sink_symbol": symbol,
+            "assertion": "Intercept the filesystem call and assert the path contains traversal segments.",
+            "notes": "Prefer mocking fs over reading arbitrary local files.",
+        }
+    elif vul_type == "nosql":
+        preferred = {
+            "type": "mock_database_query",
+            "sink_symbol": symbol,
+            "assertion": "Intercept the query call and assert the query object contains the injected marker/operator.",
+            "notes": "Prefer a fake collection over starting a database service.",
+        }
+    return {
+        "preferred": preferred,
+        "fallback": fallback,
+    }
+
+
+def _recommended_harness(export_style: str, vul_type: str, runtime_environment: dict) -> dict:
+    if export_style == "esm":
+        template = "esm-import.mjs.template"
+    elif vul_type == "proto_pollution":
+        template = "proto-poc.cjs.template"
+    else:
+        template = "direct-call.cjs.template"
+    mock_targets = runtime_environment.get("mock_recommended", [])
+    return {
+        "template": template,
+        "reason": "Selected from module style and vulnerability type.",
+        "mock_strategy": (
+            f"Monkeypatch {', '.join(mock_targets)} before invoking the target."
+            if mock_targets
+            else "Use a direct call harness and assert the returned value or captured side effect."
+        ),
+    }
+
+
+def _agent_todo(poc: dict) -> list[str]:
+    todo = [
+        "Create a minimal PoC file in the package root.",
+        f"Load the target with {poc['target']['require_path'] or 'the recovered entry file'}.",
+    ]
+    mocks = poc.get("runtime_environment", {}).get("mock_recommended", [])
+    if mocks:
+        todo.append(f"Install a mock for {', '.join(mocks)} before the vulnerable code runs.")
+    preferred_call = poc.get("entrypoint_contract", {}).get("preferred_call")
+    if preferred_call:
+        todo.append(f"Invoke the target using `{preferred_call}` with the payload in the tainted argument.")
+    else:
+        todo.append("Try the candidate call shapes and keep the smallest one that reaches the sink.")
+    todo.append("Assert the validation oracle and print PASS only when it fires.")
+    return todo
+
+
+def _agent_packet(poc: dict) -> dict:
+    """Compact handoff intended to be pasted directly into a coding agent."""
+    spans = poc.get("thin_slice", {}).get("source_slice", {}).get("required_spans", [])
+    compact_spans = [
+        {
+            "file": span.get("file"),
+            "line": span.get("start_line"),
+            "role": span.get("role"),
+            "code": span.get("code"),
+        }
+        for span in spans[:6]
+    ]
+    payload_candidates = poc.get("constraints", {}).get("payload_candidates", [])
+    payload = payload_candidates[0].get("candidate") if payload_candidates else None
+    return {
+        "purpose": "Generate the smallest safe PoC harness for this jsflow finding.",
+        "finding_id": poc.get("finding_id"),
+        "vulnerability_type": poc.get("vulnerability_type"),
+        "target": {
+            "cwd": poc.get("runtime_environment", {}).get("cwd"),
+            "require_path": poc.get("target", {}).get("require_path"),
+            "module_system": poc.get("entrypoint_contract", {}).get("module_system"),
+            "preferred_call": poc.get("entrypoint_contract", {}).get("preferred_call"),
+        },
+        "payload": {
+            "source_binding": poc.get("payload_contract", {}).get("source_binding"),
+            "candidate": payload,
+            "expectation": poc.get("payload_contract", {}).get("sink_expectation"),
+        },
+        "sink": poc.get("sink"),
+        "validation": poc.get("validation_oracle", {}).get("preferred"),
+        "runtime": {
+            "mock_recommended": poc.get("runtime_environment", {}).get("mock_recommended", []),
+            "external_services": poc.get("runtime_environment", {}).get("external_services", []),
+            "install_command": poc.get("runtime_environment", {}).get("install_command", ""),
+            "build_command": poc.get("runtime_environment", {}).get("build_command", ""),
+        },
+        "thin_slice_summary": compact_spans,
+        "recommended_harness": poc.get("recommended_harness"),
+        "todo": poc.get("agent_todo", []),
+        "uncertainty": poc.get("known_uncertainties", [])[:3],
+    }
+
+
+def _confidence_and_uncertainty(export_metadata: dict, payload_candidates: list[dict], source_node, sink_node, entry_text: str) -> tuple[dict, list[str]]:
+    payload_status = "high" if any(p.get("reason", "").endswith("status=solved") for p in payload_candidates) else ("medium" if payload_candidates else "low")
+    entry_confidence = "medium" if export_metadata["exported_symbol_kind"] != "unknown" else "low"
+    confidence = {
+        "source": "high" if source_node else "low",
+        "sink": "high" if sink_node else "low",
+        "entrypoint": entry_confidence,
+        "payload": payload_status,
+        "overall": "medium" if payload_status != "low" and sink_node else "low",
+    }
+    uncertainties = []
+    if export_metadata["exported_symbol_kind"] == "unknown":
+        uncertainties.append("Entry point export shape was not recovered from module.exports/exports syntax.")
+    if not payload_candidates:
+        uncertainties.append("No solved payload candidate was available; PoC author must choose a marker payload.")
+    if not entry_text:
+        uncertainties.append("Entry file text was unavailable, so call shape and package metadata are heuristic.")
+    uncertainties.append("Async behavior is not proven statically; adjust the harness if the call returns a Promise or requires a callback.")
+    return confidence, uncertainties
+
+
 def _build_poc_finding(
     G,
     finding_id: str,
@@ -381,8 +714,24 @@ def _build_poc_finding(
         source_node, sink_node
     )
     oracle = _recover_oracle(G.vul_type, payload_candidates)
+    thin_slice = _build_hybrid_thin_slice(path_nodes, source_node, sink_node, path_text)
+    entrypoint_contract = _entrypoint_contract(
+        export_metadata, candidate_calls, payload_candidates, entry_text
+    )
+    entrypoint_contract["require_path"] = require_path
+    runtime_environment = _runtime_environment(
+        package_root, entry_path.name if entry_path else "", G.vul_type, sink_record
+    )
+    validation_oracle = _validation_oracle(G.vul_type, payload_candidates, sink_record)
+    payload_contract = _payload_contract(G, payload_candidates, path_nodes, sink_record)
+    recommended_harness = _recommended_harness(
+        _infer_export_style(entry_text), G.vul_type, runtime_environment
+    )
+    confidence, uncertainties = _confidence_and_uncertainty(
+        export_metadata, payload_candidates, source_node, sink_node, entry_text
+    )
 
-    return {
+    poc = {
         "finding_id": finding_id,
         "normalized_from": "report",
         "vulnerability_type": G.vul_type,
@@ -426,6 +775,14 @@ def _build_poc_finding(
             "payload_candidates": payload_candidates,
         },
         "oracle": oracle,
+        "thin_slice": thin_slice,
+        "entrypoint_contract": entrypoint_contract,
+        "payload_contract": payload_contract,
+        "validation_oracle": validation_oracle,
+        "runtime_environment": runtime_environment,
+        "recommended_harness": recommended_harness,
+        "confidence": confidence,
+        "known_uncertainties": uncertainties,
         "environment": {
             "cwd": package_root,
             "notes": "Recovered from canonical jsflow report output.",
@@ -445,6 +802,9 @@ def _build_poc_finding(
             "Prefer jsflow-recovered PoC fields over downstream re-inference.",
         ],
     }
+    poc["agent_todo"] = _agent_todo(poc)
+    poc["agent_packet"] = _agent_packet(poc)
+    return poc
 
 
 def _build_poc_guidance(G, source_node, sink_node, exploit_reports):
@@ -474,6 +834,16 @@ def _build_poc_guidance(G, source_node, sink_node, exploit_reports):
         "application_sink": poc["sink"],
         "payload_candidates": poc["constraints"]["payload_candidates"],
         "suggested_oracle": poc["oracle"],
+        "thin_slice": poc["thin_slice"],
+        "entrypoint_contract": poc["entrypoint_contract"],
+        "payload_contract": poc["payload_contract"],
+        "validation_oracle": poc["validation_oracle"],
+        "runtime_environment": poc["runtime_environment"],
+        "recommended_harness": poc["recommended_harness"],
+        "agent_todo": poc["agent_todo"],
+        "agent_packet": poc["agent_packet"],
+        "confidence": poc["confidence"],
+        "known_uncertainties": poc["known_uncertainties"],
         "validation": {"status": poc["validation"]["status"]},
     }
 

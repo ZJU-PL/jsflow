@@ -123,12 +123,14 @@ Each finding in `report.json` includes a normalized PoC-ready payload under `fin
 
 The PoC-facing `finding.poc` object includes:
 
+- a compact `agent_packet` intended as the default input to coding agents
 - target package and entry file details
 - invocation mode and candidate call shapes
 - source and sink records
-- trace summary
+- hybrid thin-slice evidence
 - deduplicated payload candidates
 - suggested oracle
+- runtime, harness, and validation hints
 - validation state placeholders
 
 This is the intended workflow:
@@ -137,7 +139,12 @@ This is the intended workflow:
 python -m jsflow --json -m -X -t os_command package/index.js
 ```
 
-Then feed a finding from `logs/<timestamp>/report.json` directly into the PoC workflow in `skills/jsflow-poc-generation/`.
+PoC generation has two separate solutions:
+
+- **Interactive skill workflow**: use `skills/jsflow-poc-generation/` for one-off, human-assisted PoC work.
+- **Automated runner workflow**: use the `pocgen/` Python runner for reproducible batch generation with Codex/OpenCode/Claude-style CLIs, staged evidence loading, validation, and retries.
+
+Both should use `finding.poc.agent_packet` as the default agent input and treat the rest of `report.json` as an evidence store.
 
 See [docs/USAGE.md](docs/USAGE.md) for detailed usage instructions, examples, and advanced configuration.
 
@@ -147,4 +154,5 @@ See [docs/USAGE.md](docs/USAGE.md) for detailed usage instructions, examples, an
 - **[Usage Guide](docs/USAGE.md)**: Command-line options, canonical JSON reporting, programmatic usage, and examples
 - **[Vulnerability Types](docs/VULNERABILITIES.md)**: Detailed information about each vulnerability type with examples
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)**: Limitations, common issues, debugging tips, and references
+- **[PoC Generation Workflows](docs/POC_GENERATION.md)**: Difference between the interactive skill and automated runner approaches
 - **[PoC Skill](skills/jsflow-poc-generation/SKILL.md)**: Agent skill for turning `report.json` findings into runnable PoCs

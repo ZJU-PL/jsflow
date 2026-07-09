@@ -206,6 +206,137 @@
           },
           "additionalProperties": true
         },
+        "thin_slice": {
+          "type": "object",
+          "properties": {
+            "kind": { "type": "string" },
+            "graph_slice": { "type": "object", "additionalProperties": true },
+            "source_slice": { "type": "object", "additionalProperties": true },
+            "runtime_slice": { "type": "object", "additionalProperties": true }
+          },
+          "additionalProperties": true
+        },
+        "entrypoint_contract": {
+          "type": "object",
+          "properties": {
+            "module_system": { "type": "string" },
+            "require_path": { "type": "string" },
+            "call_shapes": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "preferred_call": { "type": "string" },
+            "argument_schema": { "type": "object", "additionalProperties": true },
+            "async": { "type": "object", "additionalProperties": true }
+          },
+          "additionalProperties": true
+        },
+        "payload_contract": {
+          "type": "object",
+          "properties": {
+            "source_binding": { "type": "string" },
+            "payload": { "type": ["string", "number", "boolean", "object", "array", "null"] },
+            "sink": { "type": "object", "additionalProperties": true },
+            "sink_expectation": { "type": "string" },
+            "constraints": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "transform_chain": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": true
+        },
+        "validation_oracle": {
+          "type": "object",
+          "properties": {
+            "preferred": { "type": "object", "additionalProperties": true },
+            "fallback": { "type": "object", "additionalProperties": true }
+          },
+          "additionalProperties": true
+        },
+        "runtime_environment": {
+          "type": "object",
+          "properties": {
+            "cwd": { "type": "string" },
+            "package_manager": { "type": "string" },
+            "install_command": { "type": "string" },
+            "node_version_hint": { "type": "string" },
+            "needs_build": { "type": "boolean" },
+            "build_command": { "type": "string" },
+            "required_files": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "external_services": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "mock_recommended": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "notes": { "type": "string" }
+          },
+          "additionalProperties": true
+        },
+        "recommended_harness": {
+          "type": "object",
+          "properties": {
+            "template": { "type": "string" },
+            "reason": { "type": "string" },
+            "mock_strategy": { "type": "string" }
+          },
+          "additionalProperties": true
+        },
+        "agent_todo": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "agent_packet": {
+          "type": "object",
+          "properties": {
+            "purpose": { "type": "string" },
+            "finding_id": { "type": "string" },
+            "vulnerability_type": { "type": "string" },
+            "target": { "type": "object", "additionalProperties": true },
+            "payload": { "type": "object", "additionalProperties": true },
+            "sink": { "type": "object", "additionalProperties": true },
+            "validation": { "type": "object", "additionalProperties": true },
+            "runtime": { "type": "object", "additionalProperties": true },
+            "thin_slice_summary": {
+              "type": "array",
+              "items": { "type": "object", "additionalProperties": true }
+            },
+            "recommended_harness": { "type": "object", "additionalProperties": true },
+            "todo": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "uncertainty": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": true
+        },
+        "confidence": {
+          "type": "object",
+          "properties": {
+            "source": { "type": "string" },
+            "sink": { "type": "string" },
+            "entrypoint": { "type": "string" },
+            "payload": { "type": "string" },
+            "overall": { "type": "string" }
+          },
+          "additionalProperties": true
+        },
+        "known_uncertainties": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "environment": {
           "type": "object",
           "properties": {
@@ -334,6 +465,22 @@
                 "notes": { "type": ["string", "null"] }
               },
               "additionalProperties": true
+            },
+            "thin_slice": { "type": "object", "additionalProperties": true },
+            "entrypoint_contract": { "type": "object", "additionalProperties": true },
+            "payload_contract": { "type": "object", "additionalProperties": true },
+            "validation_oracle": { "type": "object", "additionalProperties": true },
+            "runtime_environment": { "type": "object", "additionalProperties": true },
+            "recommended_harness": { "type": "object", "additionalProperties": true },
+            "agent_todo": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "agent_packet": { "type": "object", "additionalProperties": true },
+            "confidence": { "type": "object", "additionalProperties": true },
+            "known_uncertainties": {
+              "type": "array",
+              "items": { "type": "string" }
             },
             "validation": {
               "type": "object",

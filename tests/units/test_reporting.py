@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 
 from jsflow.reporting import build_analysis_report, write_reports
@@ -75,31 +76,52 @@ class TestReporting(unittest.TestCase):
         self.assertTrue(diagnostics[0]["rule_lists"][0]["rules"][0]["passed"])
 
     def test_json_reports_are_written(self):
-        graph = self._build_graph()
-        graph.success_detect = True
-        _, diagnostics = vul_checking(graph, [[1, 2]], "os_command", return_diagnostics=True)
-        args = SimpleNamespace(input_file="/tmp/app.js", module=True)
-        report = build_analysis_report(
-            graph,
-            args,
-            started_at=0,
-            candidate_paths=[[1, 2]],
-            rule_diagnostics=diagnostics,
-            exploit_reports=graph.exploit_reports,
-        )
+        with tempfile.TemporaryDirectory() as package_root:
+            entry_path = Path(package_root) / "app.js"
+            lines = ["\n"] * 25
+            lines[0] = "const child_process = require('child_process');\n"
+            lines[4] = "module.exports.run = function(payload) {\n"
+            lines[9] = "  const cmd = payload;\n"
+            lines[19] = "  child_process.execSync(cmd);\n"
+            lines[20] = "};\n"
+            entry_path.write_text("".join(lines), encoding="utf-8")
+            (Path(package_root) / "package.json").write_text(
+                json.dumps(
+                    {
+                        "scripts": {"build": "node build.js"},
+                        "engines": {"node": ">=18"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            graph = self._build_graph()
+            graph.success_detect = True
+            graph.entry_file_path = str(entry_path)
+            graph.file_paths = {1: str(entry_path), 2: str(entry_path)}
+            _, diagnostics = vul_checking(graph, [[1, 2]], "os_command", return_diagnostics=True)
+            args = SimpleNamespace(input_file=str(entry_path), module=True)
+            report = build_analysis_report(
+                graph,
+                args,
+                started_at=0,
+                candidate_paths=[[1, 2]],
+                rule_diagnostics=diagnostics,
+                exploit_reports=graph.exploit_reports,
+            )
 
         self.assertEqual(report["summary"]["matched_findings"], 1)
         self.assertEqual(len(report["findings"]), 1)
         self.assertEqual(report["findings"][0]["source"]["function"], "handler")
-        self.assertIn("exec(cmd)", report["findings"][0]["sink"]["snippet"]["text"])
+        self.assertIn("execSync(cmd)", report["findings"][0]["sink"]["snippet"]["text"])
         self.assertEqual(report["findings"][0]["path"]["nodes"][0]["id"], "1")
         self.assertEqual(
             report["findings"][0]["poc_guidance"]["public_entrypoint"]["symbol"],
-            "input",
+            "module.exports.run",
         )
         self.assertEqual(report["findings"][0]["poc"]["finding_id"], "jsflow/os_command/1")
         self.assertEqual(report["findings"][0]["poc"]["normalized_from"], "report")
-        self.assertEqual(report["findings"][0]["poc"]["source"]["symbol"], "input")
+        self.assertEqual(report["findings"][0]["poc"]["source"]["symbol"], "module.exports.run")
         self.assertEqual(
             report["findings"][0]["poc"]["constraints"]["payload_candidates"][0]["candidate"],
             "; touch /tmp/poc",
@@ -112,6 +134,34 @@ class TestReporting(unittest.TestCase):
             report["findings"][0]["poc_guidance"]["validation"]["status"],
             "not_run",
         )
+        poc = report["findings"][0]["poc"]
+        self.assertEqual(poc["thin_slice"]["kind"], "hybrid_thin_slice")
+        self.assertEqual(
+            poc["thin_slice"]["source_slice"]["required_spans"][0]["role"],
+            "source",
+        )
+        self.assertEqual(
+            poc["entrypoint_contract"]["preferred_call"],
+            "target.run(payload)",
+        )
+        self.assertEqual(poc["entrypoint_contract"]["require_path"], "./app.js")
+        self.assertEqual(poc["payload_contract"]["payload"], "; touch /tmp/poc")
+        self.assertIn("child_process.execSync", poc["runtime_environment"]["mock_recommended"])
+        self.assertEqual(poc["runtime_environment"]["node_version_hint"], ">=18")
+        self.assertTrue(poc["runtime_environment"]["needs_build"])
+        self.assertEqual(poc["recommended_harness"]["template"], "direct-call.cjs.template")
+        self.assertEqual(poc["validation_oracle"]["preferred"]["type"], "mock_sink_call")
+        self.assertGreaterEqual(len(poc["agent_todo"]), 4)
+        self.assertEqual(
+            poc["agent_packet"]["purpose"],
+            "Generate the smallest safe PoC harness for this jsflow finding.",
+        )
+        self.assertEqual(poc["agent_packet"]["target"]["preferred_call"], "target.run(payload)")
+        self.assertEqual(poc["agent_packet"]["payload"]["candidate"], "; touch /tmp/poc")
+        self.assertLessEqual(len(poc["agent_packet"]["thin_slice_summary"]), 6)
+        self.assertEqual(poc["confidence"]["payload"], "high")
+        self.assertIn("agent_todo", report["findings"][0]["poc_guidance"])
+        self.assertIn("agent_packet", report["findings"][0]["poc_guidance"])
 
         with tempfile.TemporaryDirectory() as tmpdir:
             written = write_reports(report, tmpdir, emit_json=True)
@@ -122,7 +172,7 @@ class TestReporting(unittest.TestCase):
                 json_report = json.load(handle)
 
             self.assertEqual(json_report["summary"]["detection_status"], "successful")
-            self.assertEqual(json_report["version"], "1.2.0")
+            self.assertEqual(json_report["version"], "1.3.0")
             self.assertEqual(
                 json_report["findings"][0]["poc"]["raw_jsflow"]["report_finding_id"],
                 "jsflow/os_command/1",

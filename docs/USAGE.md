@@ -132,11 +132,22 @@ This writes:
 
 Each finding in `report.json` also includes a `poc_guidance` block with PoC-oriented guidance such as:
 
+- compact `agent_packet` for coding agents
 - recovered public entrypoint
 - suggested invocation shape
 - application-level sink
 - deduplicated payload candidates
 - suggested oracle
+- hybrid thin-slice evidence and runtime hints
+
+Use `finding.poc.agent_packet` as the default input for Codex/OpenCode/Claude-style coding agents. Treat the rest of `finding.poc` and `report.json` as evidence to read only when the compact packet is insufficient or validation fails.
+
+There are two separate PoC generation solutions:
+
+- **Interactive skill workflow**: `skills/jsflow-poc-generation/` for one-off, human-assisted PoC generation.
+- **Automated runner workflow**: `pocgen/` Python runner for reproducible batch generation, staged evidence loading, validation, and retries.
+
+See [PoC Generation Workflows](POC_GENERATION.md) for the detailed distinction.
 
 The solver builds constraints from operations like:
 - String concatenation: `result = "prefix" + userInput + "suffix"`
