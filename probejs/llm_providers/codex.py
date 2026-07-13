@@ -1,6 +1,6 @@
 """OpenAI Codex Responses provider.
 
-This adapter translates the chat/tool schema used by jsflow into the wire
+This adapter translates the chat/tool schema used by probejs into the wire
 format expected by the Codex Responses streaming endpoint, then reconstructs
 plain text and tool-call requests from server-sent events.
 """
@@ -16,7 +16,7 @@ from typing import Any, AsyncGenerator
 import httpx
 from loguru import logger
 
-from jsflow.llm_providers.base import LLMProvider, LLMResponse, ToolCallRequest
+from probejs.llm_providers.base import LLMProvider, LLMResponse, ToolCallRequest
 
 DEFAULT_CODEX_URL = "https://chatgpt.com/backend-api/codex/responses"
 DEFAULT_ORIGINATOR = "efmc"
@@ -247,7 +247,7 @@ def _convert_user_message(content: Any) -> dict[str, Any]:
 
 
 def _split_tool_call_id(tool_call_id: Any) -> tuple[str, str | None]:
-    """Split jsflow's combined tool-call identifier into call and item ids."""
+    """Split probejs's combined tool-call identifier into call and item ids."""
     if isinstance(tool_call_id, str) and tool_call_id:
         if "|" in tool_call_id:
             call_id, item_id = tool_call_id.split("|", 1)

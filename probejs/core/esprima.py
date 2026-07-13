@@ -4,7 +4,7 @@ Helpers for invoking the bundled Esprima-based parsing scripts.
 This module is the Python bridge to the small Node.js utilities in
 `esprima-csv/`. `opgen` uses these helpers to:
 
-- parse JavaScript into the CSV/AST form consumed by jsflow
+- parse JavaScript into the CSV/AST form consumed by probejs
 - resolve Node-style module entry points
 - discover the transitive file set loaded by a `require(...)`
 
@@ -32,7 +32,7 @@ def esprima_parse(path="-", args=[], input=None, print_func=print):
         path: File path to parse, or `-` to read source from stdin.
         args: Extra CLI flags forwarded to `esprima-csv/main.js`.
         input: Optional source text when parsing from stdin.
-        print_func: Sink for parser stderr, typically the jsflow logger.
+        print_func: Sink for parser stderr, typically the probejs logger.
 
     Returns:
         The parser stdout as a string. The caller is responsible for decoding
@@ -55,7 +55,7 @@ def esprima_parse(path="-", args=[], input=None, print_func=print):
 def esprima_search(module_name, search_path, print_func=print, disable_builtin_packages=False):
     """Resolve a module import using the bundled Node-side resolver.
 
-    The search helper mirrors Node-style resolution closely enough for jsflow's
+    The search helper mirrors Node-style resolution closely enough for probejs's
     module analysis. It returns both the discovered main file and the resolved
     module directory so `opgen` can analyze the right entry point.
     """

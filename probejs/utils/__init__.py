@@ -1,7 +1,7 @@
 """
-Utility Modules - Helper classes and functions for jsflow.
+Utility Modules - Helper classes and functions for probejs.
 
-This package provides shared utilities used across the jsflow analysis engine.
+This package provides shared utilities used across the probejs analysis engine.
 
 Modules:
 --------

@@ -1,7 +1,7 @@
 """
-jsflow: A Static Analysis Framework for JavaScript Vulnerability Detection
+probejs: A Static Analysis Framework for JavaScript Vulnerability Detection
 
-jsflow is a static analysis tool that performs symbolic execution on JavaScript
+probejs is a static analysis tool that performs symbolic execution on JavaScript
 code to detect security vulnerabilities. It generates Object Property Graphs (OPG)
 from JavaScript source code and analyzes data flows to identify potential security
 issues.
@@ -22,14 +22,14 @@ Main Components:
 
 Usage:
     Command line:
-        python -m jsflow input.js -t os_command
+        python -m probejs input.js -t os_command
 
     Programmatic:
-        from jsflow.launcher import unittest_main
+        from probejs.launcher import unittest_main
         result, graph = unittest_main('input.js', vul_type='os_command')
 
 Example:
-    >>> from jsflow.launcher import unittest_main
+    >>> from probejs.launcher import unittest_main
     >>> result, graph = unittest_main('test.js', vul_type='xss')
     >>> print(f"Vulnerabilities found: {len(result)}")
 """

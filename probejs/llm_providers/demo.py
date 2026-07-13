@@ -6,7 +6,7 @@ to make chat completion requests without requiring an API key.
 
 import asyncio
 
-from jsflow.llm_providers.opencode import (
+from probejs.llm_providers.opencode import (
     chat_opencode,
     OPENCODE_FREE_MODELS,
     is_opencode_model,

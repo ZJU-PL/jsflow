@@ -4,7 +4,7 @@ from typing import Any
 
 from openai import AsyncOpenAI
 
-from jsflow.llm_providers.base import LLMResponse, ToolCallRequest
+from probejs.llm_providers.base import LLMResponse, ToolCallRequest
 
 
 # Kilo Code endpoint

@@ -1,7 +1,7 @@
 """
 Core Analysis Engine - Graph construction and symbolic execution.
 
-This package contains the core components of jsflow's analysis engine:
+This package contains the core components of probejs's analysis engine:
 
 Modules:
 --------

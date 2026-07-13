@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/jsflow/report.schema.json",
-  "title": "jsflow Analysis Report",
+  "$id": "https://example.com/probejs/report.schema.json",
+  "title": "probejs Analysis Report",
   "type": "object",
   "required": ["$schema", "version", "tool", "run", "summary", "findings"],
   "properties": {
@@ -354,7 +354,7 @@
           },
           "additionalProperties": true
         },
-        "raw_jsflow": {
+        "raw_probejs": {
           "type": "object",
           "properties": {
             "report_finding_id": { "type": "string" },

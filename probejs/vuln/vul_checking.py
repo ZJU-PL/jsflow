@@ -299,7 +299,7 @@ def vul_checking(G, pathes, vul_type, return_diagnostics=False):
             path from source to sink. Empty list if no vulnerable paths found.
 
     Example:
-        >>> from jsflow.vul_checking import vul_checking
+        >>> from probejs.vul_checking import vul_checking
         >>> # Check for XSS vulnerabilities
         >>> vulnerable_paths = vul_checking(G, candidate_paths, 'xss')
         >>> print(f"Found {len(vulnerable_paths)} XSS vulnerabilities")
@@ -492,7 +492,7 @@ def check_pp(G):
     # attacker-controlled object or property path.
     #
     # Note: We intentionally include both bare names and common qualified names
-    # (e.g. Object.assign, _.merge) because JSFlow often loses module/receiver
+    # (e.g. Object.assign, _.merge) because ProbeJS often loses module/receiver
     # identity in graphs.
     MERGE_LIKE_FUNCS = {
         "merge",
@@ -742,7 +742,7 @@ def check_pp(G):
             prop_name_ast = prop_children[1]
 
             # In real-world PP, the dangerous key often comes from iterating attacker-controlled objects.
-            # JSFlow frequently models such keys as wildcard strings rather than explicitly tainted.
+            # ProbeJS frequently models such keys as wildcard strings rather than explicitly tainted.
             key_tainted = _expr_is_tainted_or_wildcard_string(prop_name_ast, scope)
             key_dangerous_literal = _expr_has_dangerous_literal(prop_name_ast, scope)
             value_tainted = _expr_is_tainted(right, scope)
@@ -849,7 +849,7 @@ def check_pp(G):
     #
     # Many real-world PP gadgets look like:
     #   for (k in src) dst[k] = src[k]   (or recursive variants)
-    # even when JSFlow does not precisely taint `k`.
+    # even when ProbeJS does not precisely taint `k`.
     #
     # We conservatively flag computed writes inside JS_FOR_IN loops, and
     # specifically detect the common "copy by loop key" pattern.

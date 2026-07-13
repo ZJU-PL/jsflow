@@ -1,5 +1,5 @@
 """
-Graph data structures and helpers used by jsflow's JavaScript analyzer.
+Graph data structures and helpers used by probejs's JavaScript analyzer.
 
 This module wraps a NetworkX MultiDiGraph with a large collection of helpers
 for building AST, control-flow, data-flow, and object-property graphs. It is

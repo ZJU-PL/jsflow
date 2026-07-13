@@ -1,4 +1,4 @@
-"""Structured JSON reporting helpers for jsflow analysis runs."""
+"""Structured JSON reporting helpers for probejs analysis runs."""
 
 from __future__ import annotations
 
@@ -140,10 +140,10 @@ def _select_endpoint(nodes, *, reverse=False):
 
 def _build_message(status):
     if status == "matched":
-        return "jsflow matched vulnerability rules for this path."
+        return "probejs matched vulnerability rules for this path."
     if status == "exploit_only":
-        return "jsflow solved exploit-like payloads for this path, but rule matching failed."
-    return "jsflow found a candidate path that did not satisfy all rules."
+        return "probejs solved exploit-like payloads for this path, but rule matching failed."
+    return "probejs found a candidate path that did not satisfy all rules."
 
 
 def _read_text(path: Path | None) -> str:
@@ -280,7 +280,7 @@ def _dedupe_payload_candidates(exploit_reports, source_symbol: str) -> list[dict
         record = {
             "input": source_symbol or exploit.get("source_name") or "input",
             "candidate": candidate,
-            "reason": f"Recovered from jsflow exploit result status={status}",
+            "reason": f"Recovered from probejs exploit result status={status}",
             "_rank": status_rank[status],
         }
         if current is None or record["_rank"] > current["_rank"]:
@@ -524,7 +524,7 @@ def _payload_contract(G, payload_candidates: list[dict], path_nodes, sink_record
             trace_codes.append(code)
     constraints = []
     if payload_candidates:
-        constraints.append("Use a payload candidate recovered from jsflow exploit solving.")
+        constraints.append("Use a payload candidate recovered from probejs exploit solving.")
     else:
         constraints.append("No concrete solver payload was recovered; choose a short marker payload for the vulnerability class.")
     constraints.append("Place the payload in the tainted source binding, not directly at the sink.")
@@ -625,7 +625,7 @@ def _agent_packet(poc: dict) -> dict:
     payload_candidates = poc.get("constraints", {}).get("payload_candidates", [])
     payload = payload_candidates[0].get("candidate") if payload_candidates else None
     return {
-        "purpose": "Generate the smallest safe PoC harness for this jsflow finding.",
+        "purpose": "Generate the smallest safe PoC harness for this probejs finding.",
         "finding_id": poc.get("finding_id"),
         "vulnerability_type": poc.get("vulnerability_type"),
         "target": {
@@ -785,21 +785,21 @@ def _build_poc_finding(
         "known_uncertainties": uncertainties,
         "environment": {
             "cwd": package_root,
-            "notes": "Recovered from canonical jsflow report output.",
+            "notes": "Recovered from canonical probejs report output.",
         },
         "validation": {
             "status": "not_run",
             "run_command": "",
             "observed_output": "",
         },
-        "raw_jsflow": {
+        "raw_probejs": {
             "report_finding_id": finding_id,
             "report_message": status_message,
             "report_log_dir": getattr(G, "log_dir", None),
         },
         "assumptions": [
-            "Recovered from canonical jsflow report output.",
-            "Prefer jsflow-recovered PoC fields over downstream re-inference.",
+            "Recovered from canonical probejs report output.",
+            "Prefer probejs-recovered PoC fields over downstream re-inference.",
         ],
     }
     poc["agent_todo"] = _agent_todo(poc)
@@ -877,7 +877,7 @@ def build_analysis_report(
         source_node = _select_endpoint(path_nodes)
         sink_node = _select_endpoint(path_nodes, reverse=True)
         status_message = _build_message(status)
-        finding_id = f"jsflow/{G.vul_type}/{index + 1}"
+        finding_id = f"probejs/{G.vul_type}/{index + 1}"
         path_text = get_path_text(G, list(path), path[-1])
         poc_finding = _build_poc_finding(
             G,
@@ -892,7 +892,7 @@ def build_analysis_report(
         findings.append(
             {
                 "id": finding_id,
-                "rule_id": f"jsflow/{G.vul_type}",
+                "rule_id": f"probejs/{G.vul_type}",
                 "status": status,
                 "message": status_message,
                 "source": source_node,
@@ -934,8 +934,8 @@ def build_analysis_report(
         for index, node_id in enumerate(sorted(G.proto_pollution), start=1):
             findings.append(
                 {
-                    "id": f"jsflow/proto_pollution/{index}",
-                    "rule_id": "jsflow/proto_pollution",
+                    "id": f"probejs/proto_pollution/{index}",
+                    "rule_id": "probejs/proto_pollution",
                     "status": "matched",
                     "message": _build_message("matched"),
                     "source": None,
@@ -956,8 +956,8 @@ def build_analysis_report(
         for index, node_id in enumerate(sorted(G.ipt_use), start=1):
             findings.append(
                 {
-                    "id": f"jsflow/int_prop_tampering/{index}",
-                    "rule_id": "jsflow/int_prop_tampering",
+                    "id": f"probejs/int_prop_tampering/{index}",
+                    "rule_id": "probejs/int_prop_tampering",
                     "status": "matched",
                     "message": _build_message("matched"),
                     "source": _node_record(G, next(iter(sorted(G.ipt_write)), None)),
@@ -979,7 +979,7 @@ def build_analysis_report(
         "$schema": REPORT_SCHEMA,
         "version": REPORT_VERSION,
         "tool": {
-            "name": "jsflow",
+            "name": "probejs",
         },
         "run": {
             "input_file": getattr(args, "input_file", None),

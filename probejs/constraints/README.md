@@ -1,8 +1,8 @@
 # Constraint Collection
 
 This package provides a modern, path-sensitive constraint builder on top of
-jsflow's graph. It complements (does not replace) the legacy solver in
-`jsflow/core/solver.py`.
+probejs's graph. It complements (does not replace) the legacy solver in
+`probejs/core/solver.py`.
 
 ## APIs
 
@@ -21,7 +21,7 @@ collapse), enabling path-sensitive reasoning.
 ## Usage
 
 ```python
-from jsflow.constraints import solve_path_sensitive
+from probejs.constraints import solve_path_sensitive
 
 G.solve_from = "; rm -rf /"
 for assertions, results in solve_path_sensitive(G, final_objs=[sink_obj]):

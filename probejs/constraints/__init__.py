@@ -8,7 +8,7 @@ to Z3 constraints, and solving for exploit values.
 
 Typical Usage:
 --------------
-    from jsflow.constraints import build_expressions, encode_to_z3
+    from probejs.constraints import build_expressions, encode_to_z3
     exprs = build_expressions(G, target_obj_ids)
     for target, expr in exprs.items():
         solver = z3.Solver()

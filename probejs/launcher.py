@@ -1,5 +1,5 @@
 """
-This module is the main entry point for the jsflow tool.
+This module is the main entry point for the probejs tool.
 It is used to parse the command line arguments and run the analysis.
 """
 
@@ -79,7 +79,7 @@ def unittest_main(
             - G (Graph): The Graph instance used for analysis
 
     Example:
-        >>> from jsflow.launcher import unittest_main
+        >>> from probejs.launcher import unittest_main
         >>> result, graph = unittest_main('test.js', vul_type='xss')
         >>> if result:
         ...     print("Vulnerabilities detected!")
@@ -118,7 +118,7 @@ def unittest_main(
     # even when the caller did not explicitly request module mode.
     if G.check_proto_pollution and (args is None or not getattr(args, "module", False)):
         G.run_all = True
-        script = f"var __jsflow_pp_entry=require('{file_path}');"
+        script = f"var __probejs_pp_entry=require('{file_path}');"
         result = analyze_string(G, script, generate_graph=True)
     else:
         result = analyze_files(G, file_path, check_signatures=check_signatures)

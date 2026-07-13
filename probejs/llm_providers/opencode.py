@@ -8,7 +8,7 @@ from typing import Any, Optional, List, Dict
 from loguru import logger
 from openai import AsyncOpenAI
 
-from jsflow.llm_providers.base import LLMResponse, ToolCallRequest
+from probejs.llm_providers.base import LLMResponse, ToolCallRequest
 
 
 # OpenCode Zen endpoint

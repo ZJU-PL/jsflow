@@ -59,7 +59,7 @@ def create_logger(
         logging.Logger: Configured logger instance
 
     Example:
-        >>> from jsflow.logger import create_logger
+        >>> from probejs.logger import create_logger
         >>> logger = create_logger('my_logger', output_type='console')
         >>> logger.info('Analysis started')
     """

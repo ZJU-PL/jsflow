@@ -1,5 +1,5 @@
 """
-Operation Generator - Core symbolic execution engine for jsflow.
+Operation Generator - Core symbolic execution engine for probejs.
 
 This module generates the Object Property Graph (OPG) from the AST by performing
 symbolic execution on JavaScript code. It handles:
@@ -1549,7 +1549,7 @@ def instantiate_obj(G, exp_ast_node, constructor_decl, branches=None):
     backup_objs = G.cur_objs
     G.cur_objs = [created_obj]
 
-    returned_objs, _ = jsflow_function(
+    returned_objs, _ = probejs_function(
         G, constructor_decl, branches=branches, caller_ast=exp_ast_node
     )
 
@@ -1775,7 +1775,7 @@ def handle_node(G: Graph, node_id, extra=None) -> NodeHandleResult:
 
     elif cur_type == "AST_TRY":
         children = G.get_ordered_ast_child_nodes(node_id)
-        jsflow_block(G, children[0], branches=extra.branches)
+        probejs_block(G, children[0], branches=extra.branches)
         for child in children[1:]:
             handle_node(G, child, extra)
 
@@ -2106,7 +2106,7 @@ def handle_node(G: Graph, node_id, extra=None) -> NodeHandleResult:
         if deterministic and possibility == 1:
             # if the condition is surely true
             G.last_stmts = [node_id]
-            jsflow_block(G, body, G.cur_scope, branches)
+            probejs_block(G, body, G.cur_scope, branches)
             last_stmts.extend(G.last_stmts)
         elif (G.single_branch and possibility != 0) or len(if_elems) == 1:
             tag0 = BranchTag(point=stmt_id, branch=str(0))
@@ -2127,21 +2127,21 @@ def handle_node(G: Graph, node_id, extra=None) -> NodeHandleResult:
                     and if_dist > else_dist
                 ):
                     G.last_stmts = [node_id]
-                    jsflow_block(G, else_body, G.cur_scope, branches + [tag1])
+                    probejs_block(G, else_body, G.cur_scope, branches + [tag1])
                     last_stmts.extend(G.last_stmts)
                     G.last_stmts = [node_id]
-                    jsflow_block(G, body, G.cur_scope, branches + [tag0])
+                    probejs_block(G, body, G.cur_scope, branches + [tag0])
                     last_stmts.extend(G.last_stmts)
                 else:
                     G.last_stmts = [node_id]
-                    jsflow_block(G, body, G.cur_scope, branches + [tag0])
+                    probejs_block(G, body, G.cur_scope, branches + [tag0])
                     last_stmts.extend(G.last_stmts)
                     G.last_stmts = [node_id]
-                    jsflow_block(G, else_body, G.cur_scope, branches + [tag1])
+                    probejs_block(G, else_body, G.cur_scope, branches + [tag1])
                     last_stmts.extend(G.last_stmts)
             else:
                 G.last_stmts = [node_id]
-                jsflow_block(G, body, G.cur_scope, branches + [tag0])
+                probejs_block(G, body, G.cur_scope, branches + [tag0])
                 last_stmts.extend(G.last_stmts)
                 # add the if statement if there is only one branch
                 last_stmts.append(node_id)
@@ -2165,17 +2165,17 @@ def handle_node(G: Graph, node_id, extra=None) -> NodeHandleResult:
             )
             if if_dist is not None and else_dist is not None and if_dist > else_dist:
                 G.last_stmts = [node_id]
-                jsflow_block(G, body, G.cur_scope, branches + [tag0])
+                probejs_block(G, body, G.cur_scope, branches + [tag0])
                 last_stmts.extend(G.last_stmts)
                 G.last_stmts = [node_id]
-                jsflow_block(G, else_body, G.cur_scope, branches + [tag1])
+                probejs_block(G, else_body, G.cur_scope, branches + [tag1])
                 last_stmts.extend(G.last_stmts)
             else:
                 G.last_stmts = [node_id]
-                jsflow_block(G, else_body, G.cur_scope, branches + [tag0])
+                probejs_block(G, else_body, G.cur_scope, branches + [tag0])
                 last_stmts.extend(G.last_stmts)
                 G.last_stmts = [node_id]
-                jsflow_block(G, body, G.cur_scope, branches + [tag1])
+                probejs_block(G, body, G.cur_scope, branches + [tag1])
                 last_stmts.extend(G.last_stmts)
             if not G.single_branch:
                 merge(G, stmt_id, 2, parent_branch)
@@ -2188,7 +2188,7 @@ def handle_node(G: Graph, node_id, extra=None) -> NodeHandleResult:
                 else_elem = if_elems[1]
                 else_body = G.get_ordered_ast_child_nodes(else_elem)[-1]
                 G.last_stmts = [node_id]
-                jsflow_block(G, else_body, G.cur_scope, branches)
+                probejs_block(G, else_body, G.cur_scope, branches)
                 last_stmts.extend(G.last_stmts)
         G.last_stmts = last_stmts
         return NodeHandleResult()
@@ -2215,12 +2215,12 @@ def handle_node(G: Graph, node_id, extra=None) -> NodeHandleResult:
             if G.get_node_attr(test).get("type") == "NULL":  # default
                 if default_is_deterministic or G.single_branch:
                     G.last_stmts = [case]
-                    jsflow_block(G, body, G.cur_scope, branches, block_scope=False)
+                    probejs_block(G, body, G.cur_scope, branches, block_scope=False)
                     last_stmts.extend(G.last_stmts)
                 else:
                     # not deterministic
                     G.last_stmts = [case]
-                    jsflow_block(
+                    probejs_block(
                         G, body, G.cur_scope, branches + [branch_tag], block_scope=False
                     )
                     last_stmts.extend(G.last_stmts)
@@ -2235,12 +2235,12 @@ def handle_node(G: Graph, node_id, extra=None) -> NodeHandleResult:
                 # print('check result =', p, d)
             if d and p == 1:
                 G.last_stmts = [case]
-                jsflow_block(G, body, G.cur_scope, branches, block_scope=False)
+                probejs_block(G, body, G.cur_scope, branches, block_scope=False)
                 last_stmts.extend(G.last_stmts)
                 break
             elif not d or 0 < p < 1:
                 G.last_stmts = [case]
-                jsflow_block(
+                probejs_block(
                     G, body, G.cur_scope, branches + [branch_tag], block_scope=False
                 )
                 last_stmts.extend(G.last_stmts)
@@ -2361,7 +2361,7 @@ def handle_node(G: Graph, node_id, extra=None) -> NodeHandleResult:
                 logger.debug("For loop {} finished".format(node_id))
                 break
             G.last_stmts = [node_id]
-            jsflow_block(G, body, branches=extra.branches)  # run the body
+            probejs_block(G, body, branches=extra.branches)  # run the body
             result = handle_node(G, inc, extra)  # do the inc
             counter += 1
         # switch back the scope
@@ -2420,7 +2420,7 @@ def handle_node(G: Graph, node_id, extra=None) -> NodeHandleResult:
                 logger.debug("For loop {} finished".format(node_id))
                 break
             G.last_stmts = [node_id]
-            jsflow_block(G, body, branches=extra.branches)  # run the body
+            probejs_block(G, body, branches=extra.branches)  # run the body
             counter += 1
         # switch back the scope
         G.cur_scope = parent_scope
@@ -2549,7 +2549,7 @@ def decl_vars_and_funcs(G, ast_node, var=True, func=True):
             decl_vars_and_funcs(G, child, var=var, func=False)
 
 
-def jsflow_function(G, func_ast, branches=None, block_scope=True, caller_ast=None):
+def probejs_function(G, func_ast, branches=None, block_scope=True, caller_ast=None):
     """
     Analyze a JavaScript function by symbolically executing its body.
 
@@ -2594,7 +2594,7 @@ def jsflow_function(G, func_ast, branches=None, block_scope=True, caller_ast=Non
     Example:
         >>> # Analyze a function with branch context
         >>> branches = BranchTagContainer([BranchTag(point="If123", branch="0")])
-        >>> returned, used = jsflow_function(G, func_node, branches=branches)
+        >>> returned, used = probejs_function(G, func_node, branches=branches)
     """
 
     if branches is None or G.single_branch:
@@ -2690,7 +2690,7 @@ def jsflow_function(G, func_ast, branches=None, block_scope=True, caller_ast=Non
     # else:
     for child in G.get_child_nodes(func_ast, child_type="AST_STMT_LIST"):
         G.last_stmts = [entry_node]
-        returned_objs, used_objs = jsflow_block(
+        returned_objs, used_objs = probejs_block(
             G,
             child,
             parent_scope=G.cur_scope,
@@ -2716,7 +2716,7 @@ def jsflow_function(G, func_ast, branches=None, block_scope=True, caller_ast=Non
     return returned_objs, used_objs
 
 
-def jsflow_block(
+def probejs_block(
     G, ast_node, parent_scope=None, branches=None, block_scope=True, decl_var=False
 ):
     """
@@ -3404,7 +3404,7 @@ def call_func_obj(
                     G.cur_objs = _this.obj_nodes
                 else:
                     G.cur_objs = [G.BASE_OBJ]
-                branch_returned_objs, branch_used_objs = jsflow_function(
+                branch_returned_objs, branch_used_objs = probejs_function(
                     G, func_ast, branches=next_branches, caller_ast=call_ast
                 )
 
@@ -4301,7 +4301,7 @@ def run_toplevel_file(G: Graph, node_id):
     G.dont_quit = "file"
 
     # analyze the file
-    jsflow_function(G, node_id, block_scope=True)
+    probejs_function(G, node_id, block_scope=True)
 
     G.dont_quit = prev_dont_quit
 
@@ -6268,8 +6268,8 @@ def analyze_files(G, path, start_node_id=0, check_signatures=[]):
             - 0 or positive: Success, returns number of passes completed
 
     Example:
-        >>> from jsflow.graph import Graph
-        >>> from jsflow.opgen import analyze_files
+        >>> from probejs.graph import Graph
+        >>> from probejs.opgen import analyze_files
         >>> G = Graph()
         >>> result = analyze_files(G, 'test.js')
         >>> if result >= 0:
@@ -6914,7 +6914,7 @@ def handle_for_in(G: Graph, ast_node, extra):
             )
             # run the body
             G.last_stmts = [ast_node]
-            jsflow_block(G, body, branches=extra.branches)
+            probejs_block(G, body, branches=extra.branches)
             G.for_stack.pop()
         logger.debug("For-in loop {} finished".format(ast_node))
     # switch back the scope
@@ -6965,7 +6965,7 @@ def handle_for_in_fast(G: Graph, ast_node, extra):
     )
     # run the body
     G.last_stmts = [ast_node]
-    jsflow_block(G, body, branches=extra.branches)
+    probejs_block(G, body, branches=extra.branches)
     # switch back the scope
     G.cur_scope = parent_scope
     G.scope_stack.pop()
@@ -7046,7 +7046,7 @@ def handle_for_of(G: Graph, ast_node, extra):
             )
             # run the body
             G.last_stmts = [ast_node]
-            jsflow_block(G, body, branches=extra.branches)
+            probejs_block(G, body, branches=extra.branches)
             G.for_stack.pop()
         logger.debug("For-of loop {} finished".format(ast_node))
     # switch back the scope
@@ -7082,7 +7082,7 @@ def handle_for_of_fast(G: Graph, ast_node, extra):
     )
     # run the body
     G.last_stmts = [ast_node]
-    jsflow_block(G, body, branches=extra.branches)
+    probejs_block(G, body, branches=extra.branches)
     # switch back the scope
     G.cur_scope = parent_scope
     G.scope_stack.pop()
@@ -7140,7 +7140,7 @@ def handle_for_of_legacy(G: Graph, ast_node, extra):
         #     G.assign_obj_nodes_to_name_node(handled_value.name_nodes[0],
         #         [v], branches=extra.branches)
         #     # run the body
-        #     jsflow_block(G, body, branches=extra.branches)
+        #     probejs_block(G, body, branches=extra.branches)
         #     G.for_stack.pop()
 
         # text-based for-stack
@@ -7158,7 +7158,7 @@ def handle_for_of_legacy(G: Graph, ast_node, extra):
         )
         # run the body
         G.last_stmts = [ast_node]
-        jsflow_block(G, body, branches=extra.branches)
+        probejs_block(G, body, branches=extra.branches)
         G.for_stack.pop()
         logger.debug("For-of loop {} finished".format(ast_node))
     # switch back the scope
@@ -7179,7 +7179,7 @@ def handle_class(G: Graph, ast_node, extra):
     )[0]
     prev_dont_quit = G.dont_quit
     G.dont_quit = "class"
-    jsflow_class_body(G, body, ExtraInfo(extra, class_obj=class_obj))
+    probejs_class_body(G, body, ExtraInfo(extra, class_obj=class_obj))
     G.dont_quit = prev_dont_quit
     if G.get_obj_def_ast_node(class_obj) is None:
         ast = G.add_blank_func(name)
@@ -7203,7 +7203,7 @@ def handle_method(G: Graph, ast_node, extra):
             G.add_obj_as_prop(name, parent_obj=p, tobe_added_obj=method_obj)
 
 
-def jsflow_class_body(G, ast_node, extra):
+def probejs_class_body(G, ast_node, extra):
     """
     Analyze the body of a class
     """
@@ -7240,9 +7240,9 @@ def cfg_traverse(G: Graph, current, extra=ExtraInfo()):
     if cur_type == "CFG_FUNC_ENTRY":
         pass
     elif cur_type == "AST_STMT_LIST":
-        jsflow_block_init(G, current, branches=extra.branches)
+        probejs_block_init(G, current, branches=extra.branches)
     elif cur_type == "CFG_BLOCK_EXIT":
-        jsflow_block_finalize(G, current, branches=extra.branches)
+        probejs_block_finalize(G, current, branches=extra.branches)
     else:
         result = handle_node(G, current, extra)
     G.last_stmts = [current]
@@ -7256,7 +7256,7 @@ def cfg_traverse(G: Graph, current, extra=ExtraInfo()):
         cfg_traverse(G, next_node, extra)
 
 
-def jsflow_block_init(
+def probejs_block_init(
     G, ast_node, parent_scope=None, branches=None, block_scope=True, decl_var=False
 ):
     """
@@ -7280,7 +7280,7 @@ def jsflow_block_init(
     decl_vars_and_funcs(G, ast_node, var=decl_var)
 
 
-def jsflow_block_finalize(
+def probejs_block_finalize(
     G, ast_node=None, parent_scope=None, branches=None, block_scope=True, decl_var=False
 ):
     G.cur_scope = G.scope_stack.pop()

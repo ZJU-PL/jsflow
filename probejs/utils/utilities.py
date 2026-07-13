@@ -1,5 +1,5 @@
 """
-Shared utility classes and constants for jsflow.
+Shared utility classes and constants for probejs.
 
 This module contains light-weight data carriers (e.g., NodeHandleResult,
 BranchTag), small enums, and helpers for representing intermediate state during

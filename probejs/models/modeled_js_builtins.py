@@ -91,7 +91,7 @@ def setup_js_builtins(G: Graph):
 def opg_tainted_fake_arg_constructor(G: Graph, call_ast, extra, _, *args):
     """Create a synthetic wildcard object that is explicitly tainted.
 
-    jsflow uses this helper when it needs a stand-in for attacker-controlled
+    probejs uses this helper when it needs a stand-in for attacker-controlled
     inputs that do not originate from a concrete program source node.
     """
     returned_obj = G.add_obj_node(call_ast, js_type=None, value=wildcard)
@@ -2575,7 +2575,7 @@ def convert_to_python_re(code) -> Tuple[re.Pattern, bool, bool]:
 
 
 def setup_math(G: Graph):
-    """Register the subset of `Math` currently modeled by jsflow."""
+    """Register the subset of `Math` currently modeled by probejs."""
     math_obj = G.add_obj_to_scope("Math", scope=G.BASE_SCOPE)
     G.add_blank_func_as_prop("max", math_obj, math_max)
     G.add_blank_func_as_prop("min", math_obj, math_min)

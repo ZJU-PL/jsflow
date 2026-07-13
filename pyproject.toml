@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "jsflow"
+name = "probejs"
 version = "1.0.0"
 description = "A static analysis framework for JavaScript vulnerability detection"
 readme = "README.md"
@@ -27,7 +27,7 @@ dev = [
 ]
 
 [project.scripts]
-jsflow = "jsflow.__main__:main"
+probejs = "probejs.__main__:main"
 
 [tool.setuptools.packages.find]
-include = ["jsflow*"]
+include = ["probejs*"]
