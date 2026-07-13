@@ -1,7 +1,7 @@
 import re
 import unittest
 
-from jsflow.utils.utilities import (
+from probejs.utils.utilities import (
     BranchTag,
     BranchTagContainer,
     DictCounter,

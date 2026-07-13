@@ -242,7 +242,7 @@ if (require.main === module) {
 
         const simulatedOutput = {
             findings: [],
-            tool: 'jsflow',
+            tool: 'probejs',
             timestamp: new Date().toISOString()
         };
 

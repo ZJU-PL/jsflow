@@ -2,8 +2,8 @@ import math
 import unittest
 from unittest.mock import MagicMock, patch
 
-from jsflow.utils import helpers
-from jsflow.utils.utilities import wildcard, undefined, NodeHandleResult, BranchTag
+from probejs.utils import helpers
+from probejs.utils.utilities import wildcard, undefined, NodeHandleResult, BranchTag
 
 
 class TestHelpersAdvanced(unittest.TestCase):

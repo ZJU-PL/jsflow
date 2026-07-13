@@ -27,7 +27,7 @@ class TestPocgen(unittest.TestCase):
         report = {
             "$schema": "./report.schema.json",
             "version": "1.3.0",
-            "tool": {"name": "jsflow"},
+            "tool": {"name": "probejs"},
             "run": {
                 "input_file": str(package_root / "index.js"),
                 "entry_file": str(package_root / "index.js"),
@@ -38,11 +38,11 @@ class TestPocgen(unittest.TestCase):
             "summary": {"detection_status": "successful", "exploit_status": "successful", "total_findings": 1},
             "findings": [
                 {
-                    "id": "jsflow/os_command/1",
+                    "id": "probejs/os_command/1",
                     "status": "matched",
                     "message": "matched",
                     "poc": {
-                        "finding_id": "jsflow/os_command/1",
+                        "finding_id": "probejs/os_command/1",
                         "vulnerability_type": "os_command",
                         "target": {
                             "require_path": "./index.js",
@@ -50,8 +50,8 @@ class TestPocgen(unittest.TestCase):
                         },
                         "environment": {"cwd": str(package_root)},
                         "agent_packet": {
-                            "purpose": "Generate the smallest safe PoC harness for this jsflow finding.",
-                            "finding_id": "jsflow/os_command/1",
+                            "purpose": "Generate the smallest safe PoC harness for this probejs finding.",
+                            "finding_id": "probejs/os_command/1",
                             "vulnerability_type": "os_command",
                             "target": {
                                 "cwd": str(package_root),
@@ -61,7 +61,7 @@ class TestPocgen(unittest.TestCase):
                             },
                             "payload": {
                                 "source_binding": "module.exports.run",
-                                "candidate": "; echo JSFLOW_POC_SUCCESS #",
+                                "candidate": "; echo PROBEJS_POC_SUCCESS #",
                                 "expectation": "payload reaches command sink",
                             },
                             "sink": {"symbol": "child_process.execSync"},
@@ -73,7 +73,7 @@ class TestPocgen(unittest.TestCase):
                         },
                         "thin_slice": {"kind": "hybrid_thin_slice"},
                         "trace": {"nodes": []},
-                        "payload_contract": {"payload": "; echo JSFLOW_POC_SUCCESS #"},
+                        "payload_contract": {"payload": "; echo PROBEJS_POC_SUCCESS #"},
                         "validation_oracle": {"preferred": {"type": "mock_sink_call"}},
                     },
                     "path": {"node_ids": []},
@@ -92,7 +92,7 @@ class TestPocgen(unittest.TestCase):
             finding = select_finding(report, 0)
             packet = extract_agent_packet(finding)
             self.assertEqual(packet["target"]["preferred_call"], "target.run(payload)")
-            self.assertEqual(packet["payload"]["candidate"], "; echo JSFLOW_POC_SUCCESS #")
+            self.assertEqual(packet["payload"]["candidate"], "; echo PROBEJS_POC_SUCCESS #")
 
             self.assertEqual(evidence_for_stage(finding, stage=0)["contents"], {})
             self.assertIn("thin_slice", evidence_for_stage(finding, stage=1)["contents"])

@@ -4,8 +4,8 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from jsflow.reporting import build_analysis_report, write_reports
-from jsflow.vuln.vul_checking import vul_checking
+from probejs.reporting import build_analysis_report, write_reports
+from probejs.vuln.vul_checking import vul_checking
 from tests.units.vul_checking_fakes import FakeGraph
 
 
@@ -119,7 +119,7 @@ class TestReporting(unittest.TestCase):
             report["findings"][0]["poc_guidance"]["public_entrypoint"]["symbol"],
             "module.exports.run",
         )
-        self.assertEqual(report["findings"][0]["poc"]["finding_id"], "jsflow/os_command/1")
+        self.assertEqual(report["findings"][0]["poc"]["finding_id"], "probejs/os_command/1")
         self.assertEqual(report["findings"][0]["poc"]["normalized_from"], "report")
         self.assertEqual(report["findings"][0]["poc"]["source"]["symbol"], "module.exports.run")
         self.assertEqual(
@@ -154,7 +154,7 @@ class TestReporting(unittest.TestCase):
         self.assertGreaterEqual(len(poc["agent_todo"]), 4)
         self.assertEqual(
             poc["agent_packet"]["purpose"],
-            "Generate the smallest safe PoC harness for this jsflow finding.",
+            "Generate the smallest safe PoC harness for this probejs finding.",
         )
         self.assertEqual(poc["agent_packet"]["target"]["preferred_call"], "target.run(payload)")
         self.assertEqual(poc["agent_packet"]["payload"]["candidate"], "; touch /tmp/poc")
@@ -174,8 +174,8 @@ class TestReporting(unittest.TestCase):
             self.assertEqual(json_report["summary"]["detection_status"], "successful")
             self.assertEqual(json_report["version"], "1.3.0")
             self.assertEqual(
-                json_report["findings"][0]["poc"]["raw_jsflow"]["report_finding_id"],
-                "jsflow/os_command/1",
+                json_report["findings"][0]["poc"]["raw_probejs"]["report_finding_id"],
+                "probejs/os_command/1",
             )
 
 

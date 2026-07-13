@@ -3,7 +3,7 @@ import unittest
 import tempfile
 import shutil
 
-from jsflow.launcher import unittest_main
+from probejs.launcher import unittest_main
 
 
 REGRESS_DIR = os.path.join(os.path.dirname(__file__), "..", "regress")
@@ -20,7 +20,7 @@ VULNERABILITY_FILES = {
 
 
 class TestRegressFiles(unittest.TestCase):
-    """Test jsflow on all files in tests/regress."""
+    """Test probejs on all files in tests/regress."""
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
@@ -29,7 +29,7 @@ class TestRegressFiles(unittest.TestCase):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def _run_test(self, js_file, vul_type, should_detect=True):
-        """Helper to run jsflow on a file and check for vulnerabilities."""
+        """Helper to run probejs on a file and check for vulnerabilities."""
         import argparse
 
         js_path = self._resolve_regress_path(js_file)

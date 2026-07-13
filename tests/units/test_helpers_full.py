@@ -6,11 +6,11 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from jsflow.utils.helpers import (
+from probejs.utils.helpers import (
     eval_value, val_to_str, val_to_float, cmp, js_cmp, is_int,
     is_wildcard_obj, get_func_name, to_python_array
 )
-from jsflow.utils.utilities import NodeHandleResult, wildcard, undefined, BranchTag
+from probejs.utils.utilities import NodeHandleResult, wildcard, undefined, BranchTag
 
 
 class TestValToStr(unittest.TestCase):

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, Mock
 from dataclasses import dataclass
 
-from jsflow.constraints.engine import (
+from probejs.constraints.engine import (
     Expression,
     ConstString,
     ConstNumber,
@@ -103,13 +103,13 @@ class TestLeafExpr(unittest.TestCase):
         self.assertEqual(expr.node_id, "node1")
 
     def test_leaf_expr_wildcard_string(self):
-        from jsflow.utils.utilities import wildcard
+        from probejs.utils.utilities import wildcard
         expr = _leaf_expr("node1", "string", wildcard, False)
         self.assertIsInstance(expr, Symbol)
         self.assertEqual(expr.node_id, "node1")
 
     def test_leaf_expr_wildcard_number(self):
-        from jsflow.utils.utilities import wildcard
+        from probejs.utils.utilities import wildcard
         expr = _leaf_expr("node1", "number", wildcard, False)
         self.assertIsInstance(expr, Symbol)
         self.assertEqual(expr.node_id, "node1")

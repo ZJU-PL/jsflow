@@ -1,1 +1,1 @@
-"""Unit tests package for jsflow."""
+"""Unit tests package for probejs."""

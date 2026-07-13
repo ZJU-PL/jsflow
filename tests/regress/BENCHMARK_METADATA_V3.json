@@ -1,8 +1,8 @@
 {
-  "benchmark_suite": "jsflow_taint_analysis_benchmark",
+  "benchmark_suite": "probejs_taint_analysis_benchmark",
   "version": "3.0",
   "created": "2025-01-14",
-  "description": "Comprehensive Micro-Benchmarks for Evaluating JavaScript Taint Bug Detection Precision and Recall - optimized for jsflow supported vulnerabilities",
+  "description": "Comprehensive Micro-Benchmarks for Evaluating JavaScript Taint Bug Detection Precision and Recall - optimized for probejs supported vulnerabilities",
 
   "statistics": {
     "total_test_files": 20,
@@ -257,16 +257,16 @@
       "language": "C/C++/Java",
       "description": "Comprehensive CWE coverage with standardized format"
     },
-    "jsflow_Benchmark_v3.0": {
+    "probejs_Benchmark_v3.0": {
       "test_count": 335,
       "cwe_count": 7,
       "language": "JavaScript",
-      "description": "CWE-based micro-benchmarks for jsflow supported vulnerabilities"
+      "description": "CWE-based micro-benchmarks for probejs supported vulnerabilities"
     }
   },
 
   "quality_metrics": {
-    "coverage_score": "B (7 CWE categories supported by jsflow)",
+    "coverage_score": "B (7 CWE categories supported by probejs)",
     "breadth_score": "A (335+ test functions across supported attack vectors)",
     "depth_score": "A+ (Real-world CVE reproductions, advanced bypass techniques)",
     "innovation_score": "A (JavaScript taint analysis with modern patterns)",

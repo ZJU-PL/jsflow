@@ -4,7 +4,7 @@ import os
 import tempfile
 from unittest.mock import patch, MagicMock
 
-from jsflow.utils.logger import (
+from probejs.utils.logger import (
     ColorFormatter, NoColorFormatter, create_logger, ATTENTION
 )
 
@@ -89,7 +89,7 @@ class TestNoColorFormatter(unittest.TestCase):
             exc_info=None
         )
         
-        with patch('jsflow.utils.logger.super') as mock_super:
+        with patch('probejs.utils.logger.super') as mock_super:
             mock_super.return_value.format.return_value = "\x1b[31mError\x1b[0m"
             
             formatted = self.formatter.format(record)
@@ -183,7 +183,7 @@ class TestCreateLogger(unittest.TestCase):
         logger.handlers[0].flush()
 
     def test_create_logger_with_windows(self):
-        with patch('jsflow.utils.logger.os.name', 'nt'):
+        with patch('probejs.utils.logger.os.name', 'nt'):
             logger = create_logger("test_windows", output_type="console")
             
             self.assertEqual(logger.name, "test_windows")

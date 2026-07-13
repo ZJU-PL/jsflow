@@ -4,7 +4,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from jsflow.vuln.vul_func_lists import signature_lists, get_all_sign_list
+from probejs.vuln.vul_func_lists import signature_lists, get_all_sign_list
 
 
 class TestVulFuncLists(unittest.TestCase):

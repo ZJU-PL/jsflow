@@ -3,7 +3,7 @@ from collections import defaultdict
 
 import z3
 
-from jsflow.constraints import (
+from probejs.constraints import (
     Add,
     AndCondition,
     ConstString,
@@ -39,7 +39,7 @@ class TestPathConditions(unittest.TestCase):
     def test_encode_condition_predicate(self):
         solver = z3.Solver()
         pred = Predicate(op="contains", left="abc", right="b")
-        from jsflow.constraints.engine import _SymbolCache
+        from probejs.constraints.engine import _SymbolCache
 
         cond = encode_condition(pred, solver, _SymbolCache())
         solver.add(cond)
@@ -48,7 +48,7 @@ class TestPathConditions(unittest.TestCase):
     def test_named_condition(self):
         solver = z3.Solver()
         named = NamedCondition("g1")
-        from jsflow.constraints.engine import _SymbolCache
+        from probejs.constraints.engine import _SymbolCache
 
         cond = encode_condition(named, solver, _SymbolCache())
         solver.add(cond)

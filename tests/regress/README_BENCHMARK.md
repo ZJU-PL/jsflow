@@ -1,8 +1,8 @@
-# jsflow Taint Analysis Benchmark Suite
+# probejs Taint Analysis Benchmark Suite
 
 **Micro-Benchmarks for Evaluating JavaScript Taint Bug Detection Precision and Recall**
 
-This benchmark suite provides test cases for evaluating static analysis tools' ability to detect JavaScript taint-related vulnerabilities supported by jsflow.
+This benchmark suite provides test cases for evaluating static analysis tools' ability to detect JavaScript taint-related vulnerabilities supported by probejs.
 
 ## Overview
 
@@ -67,7 +67,7 @@ tests/regress/
 | CWE-943 | NoSQL Injection | nosql_injection.js | ~25 |
 | CWE-1321 | Prototype Pollution | prototype_pollution.js | ~20 |
 
-**Total**: ~335 test functions across 6 CWE categories supported by jsflow
+**Total**: ~335 test functions across 6 CWE categories supported by probejs
 
 ## Test Categories
 
@@ -359,11 +359,11 @@ node evaluate_benchmark.js tests/regress/ tool3_output.json
 
 ### For Benchmark Evaluation
 
-To compare against jsflow:
+To compare against probejs:
 
 ```bash
-# Run jsflow on benchmark suite
-python -m jsflow -t sql_injection -t xss -t os_command tests/regress/
+# Run probejs on benchmark suite
+python -m probejs -t sql_injection -t xss -t os_command tests/regress/
 
 # The results will include:
 # - Detected vulnerabilities
@@ -428,15 +428,15 @@ Planned additions to make this a truly comprehensive suite:
 If you use this benchmark suite in your research or tool evaluation, please cite:
 
 ```
-jsflow Taint Analysis Benchmark Suite v2.0
+probejs Taint Analysis Benchmark Suite v2.0
 World-Class Comprehensive Micro-Benchmarks for Evaluating
 JavaScript Taint Bug Detection Precision and Recall
-https://github.com/[username]/jsflow
+https://github.com/[username]/probejs
 ```
 
 ## License
 
-This benchmark suite is part of the jsflow project. See main repository for license information.
+This benchmark suite is part of the probejs project. See main repository for license information.
 
 ## Contact
 

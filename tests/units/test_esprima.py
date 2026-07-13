@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch, Mock
 import os
 
-from jsflow.core import esprima
+from probejs.core import esprima
 
 
 class TestEsprimaParse(unittest.TestCase):

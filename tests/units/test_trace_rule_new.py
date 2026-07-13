@@ -1,6 +1,6 @@
 import unittest
 
-from jsflow.core.trace_rule import TraceRule
+from probejs.core.trace_rule import TraceRule
 from tests.units.vul_checking_fakes import FakeGraph
 
 

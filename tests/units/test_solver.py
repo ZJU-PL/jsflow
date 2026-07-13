@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 from collections import defaultdict
 
-from jsflow.core.solver import MixedSymbol, check_number_operation, check_string_operation
+from probejs.core.solver import MixedSymbol, check_number_operation, check_string_operation
 
 
 class TestMixedSymbol(unittest.TestCase):
