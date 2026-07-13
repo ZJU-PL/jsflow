@@ -2,7 +2,7 @@
 
 ## Finding summary
 
-- **ID**: jsflow/os_command/2
+- **ID**: probejs/os_command/2
 - **Type**: os_command
 - **Entry file**: index.js
 - **Entry function**: default CommonJS export
@@ -23,18 +23,18 @@
 ## How to run
 
 ```bash
-cd /Users/rainoftime/Work/analysis/jsflow/evaluation/skill-trials/report-json-find-exec-1.0.2
+cd /Users/rainoftime/Work/analysis/probejs/evaluation/skill-trials/report-json-find-exec-1.0.2
 node poc.js
 ```
 
 ## Expected success signal
 
-The PoC prints `JSFLOW_POC_SUCCESS` after confirming that `/tmp/jsflow_report_skill_marker` was created by the injected command.
+The PoC prints `PROBEJS_POC_SUCCESS` after confirming that `/tmp/probejs_report_skill_marker` was created by the injected command.
 
 ## Observed output
 
 ```text
-JSFLOW_POC_SUCCESS ; touch /tmp/jsflow_report_skill_marker
+PROBEJS_POC_SUCCESS ; touch /tmp/probejs_report_skill_marker
 ```
 
 ## Validation result

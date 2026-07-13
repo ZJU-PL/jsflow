@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/jsflow-poc-finding.schema.json",
-  "title": "Normalized jsflow Finding for PoC Generation",
+  "$id": "https://example.com/probejs-poc-finding.schema.json",
+  "title": "Normalized probejs Finding for PoC Generation",
   "type": "object",
   "required": ["vulnerability_type", "target"],
   "properties": {
@@ -10,7 +10,7 @@
     },
     "normalized_from": {
       "type": "string",
-      "enum": ["manual", "raw_jsflow", "taint_summary_detection", "taint_summary", "report", "unknown"]
+      "enum": ["manual", "raw_probejs", "taint_summary_detection", "taint_summary", "report", "unknown"]
     },
     "vulnerability_type": {
       "type": "string",
@@ -179,7 +179,7 @@
       },
       "additionalProperties": true
     },
-    "raw_jsflow": {
+    "raw_probejs": {
       "type": "object",
       "properties": {
         "filename": { "type": "string" },

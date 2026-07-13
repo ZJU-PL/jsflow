@@ -1,6 +1,6 @@
 {{METHOD}} {{PATH}} HTTP/1.1
 Host: {{HOST}}
-User-Agent: jsflow-poc-skill
+User-Agent: probejs-poc-skill
 Content-Type: application/json
 
 {{BODY}}

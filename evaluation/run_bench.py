@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Run jsflow on a benchmark dataset and evaluate results.
+"""Run probejs on a benchmark dataset and evaluate results.
 
--j: number of jobs
--d: dir of the dataset
+Usage:
+    python3 evaluation/run_bench.py -D secbench          # run on SecBench (default)
+    python3 evaluation/run_bench.py -D vulcan             # run on VulcaN subset
+    python3 evaluation/run_bench.py -D vulcan -t 60 -j 4 # custom timeout + workers
+    python3 evaluation/run_bench.py -d <path>             # custom dataset directory
 """
 
 import json
@@ -17,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-# Map CWE IDs to jsflow vulnerability types
+# Map CWE IDs to probejs vulnerability types
 CWE_TO_VULN_TYPE = {
     "CWE-22": "path_traversal",
     "CWE-78": "os_command",
@@ -25,7 +28,12 @@ CWE_TO_VULN_TYPE = {
     "CWE-471": "proto_pollution",
 }
 
-DEFAULT_DATASET_DIR = Path("evaluation/explodejs-datasets/secbench-dataset")
+DATASET_BASE_DIR = Path("evaluation/explodejs-datasets")
+DATASET_ALIASES: Dict[str, Path] = {
+    "secbench": DATASET_BASE_DIR / "secbench-dataset",
+    "vulcan": DATASET_BASE_DIR / "vulcan-dataset",
+}
+DEFAULT_DATASET_DIR = DATASET_ALIASES["secbench"]
 
 
 def find_cases(dataset_dir: Path) -> List[Tuple[str, str]]:
@@ -107,14 +115,14 @@ def kill_all_running_subprocesses(*, grace_seconds: float = 1.0) -> None:
         _kill_pgid(pgid, signal.SIGKILL)
 
 
-def run_jsflow(
+def run_probejs(
     file_path: str,
     vuln_type: str,
     timeout: int = DEFAULT_TIMEOUT,
     disable_builtin_packages: bool = False,
 ) -> Tuple[bool, float, str]:
-    """Run jsflow on a file."""
-    cmd = ["python3", "-m", "jsflow", "-t", vuln_type, "-q", file_path]
+    """Run probejs on a file."""
+    cmd = ["python3", "-m", "probejs", "-t", vuln_type, "-q", file_path]
     if disable_builtin_packages:
         cmd.insert(3, "--no-builtin-packages")
     start_time = time.time()
@@ -187,7 +195,7 @@ def process_case(
             }
 
     print(f"Analyzing: {cwe_id}/{case_name} ({vuln_type})")
-    detected, elapsed_time, output = run_jsflow(
+    detected, elapsed_time, output = run_probejs(
         str(src_file),
         vuln_type,
         timeout,
@@ -219,7 +227,7 @@ def evaluate_dataset(
     timeout: int = DEFAULT_TIMEOUT,
     disable_builtin_packages: bool = False,
 ):
-    """Run jsflow on a dataset and collect metrics."""
+    """Run probejs on a dataset and collect metrics."""
     cases = find_cases(dataset_dir)
     results = {
         "total_cases": len(cases),
@@ -297,7 +305,7 @@ def evaluate_dataset(
 def print_metrics(results: Dict):
     """Print evaluation metrics."""
     print("\n" + "=" * 60)
-    print("JSFLOW BENCHMARK EVALUATION RESULTS")
+    print("PROBEJS BENCHMARK EVALUATION RESULTS")
     print("=" * 60)
 
     s = results["detection_summary"]
@@ -341,9 +349,12 @@ def save_results(results: Dict, output_file: str = "bench_results.json"):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Run jsflow on benchmark dataset")
-    parser.add_argument("-d", "--dataset-dir", type=Path, default=DEFAULT_DATASET_DIR,
-                        help=f"Dataset directory (default: {DEFAULT_DATASET_DIR})")
+    parser = argparse.ArgumentParser(description="Run probejs on benchmark dataset")
+    parser.add_argument("-D", "--dataset", type=str,
+                        choices=list(DATASET_ALIASES.keys()),
+                        help=f"Named dataset ({', '.join(DATASET_ALIASES.keys())})")
+    parser.add_argument("-d", "--dataset-dir", type=Path,
+                        help="Custom dataset directory path (overrides -D)")
     parser.add_argument("-j", "--jobs", type=int, default=os.cpu_count(),
                         help="Number of parallel jobs (default: CPU count)")
     parser.add_argument("-t", "--timeout", type=int, default=DEFAULT_TIMEOUT,
@@ -355,10 +366,18 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # Resolve dataset directory: -d > -D > default
+    if args.dataset_dir is not None:
+        dataset_dir = args.dataset_dir
+    elif args.dataset is not None:
+        dataset_dir = DATASET_ALIASES[args.dataset]
+    else:
+        dataset_dir = DEFAULT_DATASET_DIR
+
     os.chdir(Path(__file__).parent.parent)
     try:
         results = evaluate_dataset(
-            dataset_dir=args.dataset_dir,
+            dataset_dir=dataset_dir,
             max_workers=args.jobs,
             timeout=args.timeout,
             disable_builtin_packages=args.no_builtin_packages,

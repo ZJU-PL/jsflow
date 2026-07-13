@@ -1,11 +1,11 @@
 ---
-name: jsflow-poc-generation
-description: Generate minimal runnable PoCs from jsflow findings, raw taint summaries, or vulnerability reports for JavaScript targets.
+name: probejs-poc-generation
+description: Generate minimal runnable PoCs from probejs findings, raw taint summaries, or vulnerability reports for JavaScript targets.
 ---
 
-# JSFlow PoC Generation
+# ProbeJS PoC Generation
 
-Use this skill when a jsflow report needs to be turned into a concrete, minimal PoC.
+Use this skill when a probejs report needs to be turned into a concrete, minimal PoC.
 
 ## Goal
 
@@ -20,18 +20,18 @@ At minimum, create `README-PoC.md` and one runnable artifact such as `poc.js`, `
 
 ## Inputs
 
-Prefer a canonical `jsflow` `report.json` finding emitted by `--json`, and treat `finding.poc` as the primary PoC-facing contract.
+Prefer a canonical `probejs` `report.json` finding emitted by `--json`, and treat `finding.poc` as the primary PoC-facing contract.
 
-If the input is a raw jsflow output instead, extract the required PoC fields inline as part of the workflow rather than relying on a separate normalization script.
+If the input is a raw probejs output instead, extract the required PoC fields inline as part of the workflow rather than relying on a separate normalization script.
 
-When a `jsflow` report already contains `finding.poc`, prefer it over local guesswork. Use `finding.poc_guidance` only as supporting detail when needed. The skill should spend effort on PoC generation and validation, not on re-deriving entrypoints that jsflow already recovered.
+When a `probejs` report already contains `finding.poc`, prefer it over local guesswork. Use `finding.poc_guidance` only as supporting detail when needed. The skill should spend effort on PoC generation and validation, not on re-deriving entrypoints that probejs already recovered.
 
 See:
 
-- `jsflow/report.schema.json` for the canonical jsflow report contract, including `finding.poc`
+- `probejs/report.schema.json` for the canonical probejs report contract, including `finding.poc`
 - `finding.schema.json` for the PoC-oriented field checklist
 - `examples/finding.sample.json` for a PoC-oriented sample
-- `examples/raw_jsflow_summary.sample.json` for a raw input sample that may require manual field extraction
+- `examples/raw_probejs_summary.sample.json` for a raw input sample that may require manual field extraction
 
 ## Workflow
 
@@ -119,7 +119,7 @@ Never label a speculative PoC as validated.
 
 ### OS command injection
 
-- Prefer `echo JSFLOW_POC_SUCCESS` over destructive commands.
+- Prefer `echo PROBEJS_POC_SUCCESS` over destructive commands.
 - If separators are filtered, adapt quoting or argument boundaries to the sink context.
 - If the sink is `execFile` or `spawn`, verify whether shell parsing is actually involved.
 

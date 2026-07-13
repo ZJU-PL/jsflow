@@ -14,12 +14,12 @@ import sys
 import time
 import hashlib
 sys.path.append("..")
-from jsflow.launcher import unittest_main
-from jsflow.logger import *
-from jsflow.trace_rule import TraceRule
-from jsflow.vul_checking import *
-from jsflow.vul_func_lists import *
-from jsflow.graph import Graph
+from probejs.launcher import unittest_main
+from probejs.logger import *
+from probejs.trace_rule import TraceRule
+from probejs.vul_checking import *
+from probejs.vul_func_lists import *
+from probejs.graph import Graph
 
 skip_packages = []
 

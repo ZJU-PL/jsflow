@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Evaluate jsflow on tests/regress directory to calculate precision and recall.
+Evaluate probejs on tests/regress directory to calculate precision and recall.
 
 This script:
-1. Runs jsflow on each test file with appropriate vulnerability type
+1. Runs probejs on each test file with appropriate vulnerability type
 2. Determines expected behavior (vulnerable vs safe) from file names and metadata
-3. Parses jsflow output to detect if vulnerabilities were found
+3. Parses probejs output to detect if vulnerabilities were found
 4. Calculates precision, recall, and F1 score
 """
 
@@ -19,9 +19,9 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
-# Map CWE IDs to jsflow vulnerability types
+# Map CWE IDs to probejs vulnerability types
 CWE_TO_VULN_TYPE = {
-    "CWE-89": "code_exec",  # SQL Injection (jsflow may not have specific SQL injection type)
+    "CWE-89": "code_exec",  # SQL Injection (probejs may not have specific SQL injection type)
     "CWE-78": "os_command",  # OS Command Injection
     "CWE-79": "xss",  # Cross-Site Scripting
     "CWE-94": "code_exec",  # Code Execution
@@ -78,7 +78,7 @@ def is_safe_file(filename: str) -> bool:
 
 
 def get_vuln_type_for_file(filename: str, metadata: Dict) -> Optional[str]:
-    """Get the vulnerability type to use for jsflow."""
+    """Get the vulnerability type to use for probejs."""
     # Check metadata first
     file_details = metadata.get("test_file_details", {}).get(filename, {})
     cwe = file_details.get("cwe")
@@ -92,15 +92,15 @@ def get_vuln_type_for_file(filename: str, metadata: Dict) -> Optional[str]:
     return None
 
 
-def run_jsflow(file_path: Path, vuln_type: str, timeout: int = DEFAULT_TIMEOUT) -> Tuple[bool, float, str]:
-    """Run jsflow on a file and return (detected, elapsed_time, output)."""
+def run_probejs(file_path: Path, vuln_type: str, timeout: int = DEFAULT_TIMEOUT) -> Tuple[bool, float, str]:
+    """Run probejs on a file and return (detected, elapsed_time, output)."""
     script_path = Path(__file__).resolve()
     if script_path.parent.name == "evaluation":
         project_root = script_path.parent.parent
     else:
         project_root = script_path.parent
     
-    cmd = ["python3", "-m", "jsflow", "-t", vuln_type, "-q", "-m", str(file_path)]
+    cmd = ["python3", "-m", "probejs", "-t", vuln_type, "-q", "-m", str(file_path)]
     start_time = time.time()
     
     try:
@@ -198,8 +198,8 @@ def evaluate_file(file_path: Path, metadata: Dict, results: Dict) -> Dict:
     
     print(f"Analyzing {filename} (type: {vuln_type}, expected: {'vulnerable' if expected_vulnerable else 'safe'})")
     
-    # Run jsflow
-    detected, elapsed_time, output = run_jsflow(file_path, vuln_type)
+    # Run probejs
+    detected, elapsed_time, output = run_probejs(file_path, vuln_type)
     
     # Classify result
     if expected_vulnerable and detected:
@@ -285,7 +285,7 @@ def calculate_metrics(results: Dict):
 def print_results(results: Dict):
     """Print evaluation results."""
     print("\n" + "=" * 70)
-    print("JSFLOW PRECISION AND RECALL EVALUATION")
+    print("PROBEJS PRECISION AND RECALL EVALUATION")
     print("=" * 70)
     
     tp = results['tp']

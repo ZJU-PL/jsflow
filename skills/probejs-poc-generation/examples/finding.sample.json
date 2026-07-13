@@ -54,13 +54,13 @@
     "payload_candidates": [
       {
         "input": "cmd",
-        "candidate": "&& echo JSFLOW_POC_SUCCESS"
+        "candidate": "&& echo PROBEJS_POC_SUCCESS"
       }
     ]
   },
   "oracle": {
     "type": "stdout",
-    "marker": "JSFLOW_POC_SUCCESS",
+    "marker": "PROBEJS_POC_SUCCESS",
     "notes": "The injected command should print the marker to stdout."
   },
   "environment": {

@@ -1,0 +1,4 @@
+interface:
+  display_name: "ProbeJS PoC Generation"
+  short_description: "Turn probejs findings into runnable JavaScript PoCs"
+  default_prompt: "Use $probejs-poc-generation to turn this probejs finding into the smallest validated PoC."
