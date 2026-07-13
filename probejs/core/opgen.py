@@ -5773,6 +5773,7 @@ def call_function(
                 + sty.rs.all
             )
             G.solve_from = payload  # payload string
+            G._call_ast_node_id = call_ast  # for AST-level guard collection
             solution = solver.solve(G, handled_arg.obj_nodes, None, contains=True)
             for i, (assertions, results) in enumerate(solution):
                 if G.exit_when_found and G.success_exploit:
