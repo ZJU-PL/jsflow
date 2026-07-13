@@ -1,7 +1,7 @@
 Quick Start Guide
 ==================
 
-Get up and running with jsflow quickly.
+Get up and running with probejs quickly.
 
 Basic Usage
 -----------
@@ -11,22 +11,22 @@ Analyze a JavaScript file for vulnerabilities:
 .. code-block:: bash
 
    # Analyze a JavaScript file
-   python -m jsflow input.js
+   python -m probejs input.js
 
    # Analyze with specific vulnerability type
-   python -m jsflow -t os_command input.js
+   python -m probejs -t os_command input.js
 
    # Check for prototype pollution
-   python -m jsflow -P input.js
+   python -m probejs -P input.js
 
    # Module mode (analyze as npm module)
-   python -m jsflow -m input.js
+   python -m probejs -m input.js
 
    # Exit when vulnerability is found
-   python -m jsflow -q -t xss input.js
+   python -m probejs -q -t xss input.js
 
    # Print logs to console
-   python -m jsflow -p input.js
+   python -m probejs -p input.js
 
 Command Line Options
 --------------------
@@ -78,13 +78,13 @@ Analysis commands:
 .. code-block:: bash
 
    # Detect OS command injection vulnerability
-   python -m jsflow -t os_command vulnerable.js
+   python -m probejs -t os_command vulnerable.js
 
    # Generate exploit payload
-   python -m jsflow -X -t os_command vulnerable.js
+   python -m probejs -X -t os_command vulnerable.js
 
    # Check for prototype pollution
-   python -m jsflow -P vulnerable.js
+   python -m probejs -P vulnerable.js
 
 Output Files
 -------------
@@ -104,8 +104,8 @@ Programmatic Usage
 
 .. code-block:: python
 
-   from jsflow.launcher import unittest_main
-   from jsflow.graph import Graph
+   from probejs.launcher import unittest_main
+   from probejs.graph import Graph
 
    # Analyze a file
    result, graph = unittest_main(
@@ -123,11 +123,11 @@ Advanced Usage
 Constraint Solving
 ~~~~~~~~~~~~~~~~~~
 
-When using the ``-X`` (auto-exploit) flag, jsflow will attempt to generate concrete input values that trigger vulnerabilities:
+When using the ``-X`` (auto-exploit) flag, probejs will attempt to generate concrete input values that trigger vulnerabilities:
 
 .. code-block:: bash
 
-   python -m jsflow -X -t os_command vulnerable.js
+   python -m probejs -X -t os_command vulnerable.js
 
 The solver builds constraints from operations like:
 - String concatenation: ``result = "prefix" + userInput + "suffix"``
@@ -140,10 +140,10 @@ Module Analysis
 .. code-block:: bash
 
    # Analyze an npm package
-   python -m jsflow -m -t xss package/index.js
+   python -m probejs -m -t xss package/index.js
 
    # Run all exported functions
-   python -m jsflow -m -a package/index.js
+   python -m probejs -m -a package/index.js
 
 Analysis Modes
 ~~~~~~~~~~~~~~

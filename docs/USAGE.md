@@ -6,22 +6,22 @@
 
 ```bash
 # Analyze a JavaScript file
-python -m jsflow input.js
+python -m probejs input.js
 
 # Analyze with specific vulnerability type
-python -m jsflow -t os_command input.js
+python -m probejs -t os_command input.js
 
 # Check for prototype pollution
-python -m jsflow -P input.js
+python -m probejs -P input.js
 
 # Module mode (analyze as npm module)
-python -m jsflow -m input.js
+python -m probejs -m input.js
 
 # Exit when vulnerability is found
-python -m jsflow -q -t xss input.js
+python -m probejs -q -t xss input.js
 
 # Print logs to console
-python -m jsflow -p input.js
+python -m probejs -p input.js
 ```
 
 ### Command Line Options
@@ -48,8 +48,8 @@ python -m jsflow -p input.js
 ## Programmatic Usage
 
 ```python
-from jsflow.launcher import unittest_main
-from jsflow.graph import Graph
+from probejs.launcher import unittest_main
+from probejs.graph import Graph
 
 # Analyze a file
 result, graph = unittest_main(
@@ -65,8 +65,8 @@ print(f"Covered statements: {len(graph.covered_stat)}")
 ### Advanced Programmatic Usage
 
 ```python
-from jsflow.launcher import unittest_main
-from jsflow.graph import Graph
+from probejs.launcher import unittest_main
+from probejs.graph import Graph
 
 # Analyze with custom settings
 result, graph = unittest_main(
@@ -93,7 +93,7 @@ print(f"Coverage: {len(graph.covered_stat) / graph.get_total_num_statements() * 
 
 ```bash
 # Analyze a single file for OS command injection
-python -m jsflow -t os_command examples/vulnerable.js
+python -m probejs -t os_command examples/vulnerable.js
 
 # Check output in logs directory
 cat logs/*/run_log.log
@@ -103,18 +103,18 @@ cat logs/*/run_log.log
 
 ```bash
 # Analyze an npm package
-python -m jsflow -m -t xss package/index.js
+python -m probejs -m -t xss package/index.js
 
 # Run all exported functions
-python -m jsflow -m -a package/index.js
+python -m probejs -m -a package/index.js
 ```
 
 ### Example 3: Constraint Solving
 
-When using the `-X` (auto-exploit) flag, jsflow will attempt to generate concrete input values that trigger vulnerabilities:
+When using the `-X` (auto-exploit) flag, probejs will attempt to generate concrete input values that trigger vulnerabilities:
 
 ```bash
-python -m jsflow -X -t os_command vulnerable.js
+python -m probejs -X -t os_command vulnerable.js
 ```
 
 ### Example 4: Structured Reports
@@ -122,12 +122,12 @@ python -m jsflow -X -t os_command vulnerable.js
 Use structured reporting when you want downstream tools or LLM workflows to consume findings directly:
 
 ```bash
-python -m jsflow --json -t os_command vulnerable.js
+python -m probejs --json -t os_command vulnerable.js
 ```
 
 This writes:
 
-- `report.json` - canonical jsflow finding data with code snippets, rule diagnostics, and exploit candidates
+- `report.json` - canonical probejs finding data with code snippets, rule diagnostics, and exploit candidates
 - `report.schema.json` - the schema for `report.json`
 
 Each finding in `report.json` also includes a `poc_guidance` block with PoC-oriented guidance such as:
@@ -144,7 +144,7 @@ Use `finding.poc.agent_packet` as the default input for Codex/OpenCode/Claude-st
 
 There are two separate PoC generation solutions:
 
-- **Interactive skill workflow**: `skills/jsflow-poc-generation/` for one-off, human-assisted PoC generation.
+- **Interactive skill workflow**: `skills/probejs-poc-generation/` for one-off, human-assisted PoC generation.
 - **Automated runner workflow**: `pocgen/` Python runner for reproducible batch generation, staged evidence loading, validation, and retries.
 
 See [PoC Generation Workflows](POC_GENERATION.md) for the detailed distinction.

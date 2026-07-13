@@ -1,14 +1,14 @@
-# Constraint Solving in jsflow
+# Constraint Solving in probejs
 
 ## Overview
 
-jsflow uses **Z3** (an SMT solver) to solve constraints and determine if vulnerable paths are feasible, and to generate concrete exploit payloads. The system models string concatenations and numeric operations along data flow paths.
+probejs uses **Z3** (an SMT solver) to solve constraints and determine if vulnerable paths are feasible, and to generate concrete exploit payloads. The system models string concatenations and numeric operations along data flow paths.
 
 ## Architecture
 
 Two implementations exist:
-1. **Legacy Solver** (`jsflow/core/solver.py`): Direct Z3 constraint building from graph edges
-2. **New Constraint Engine** (`jsflow/constraints/engine.py`): Expression IR-based approach
+1. **Legacy Solver** (`probejs/core/solver.py`): Direct Z3 constraint building from graph edges
+2. **New Constraint Engine** (`probejs/constraints/engine.py`): Expression IR-based approach
 
 The legacy solver (`solve2()`) is currently the active implementation.
 
@@ -71,7 +71,7 @@ def solve2(G: Graph, final_objs, initial_objs=None, contains=True):
 
 ## New Constraint Engine
 
-The new engine (`jsflow/constraints/engine.py`) uses an Expression IR:
+The new engine (`probejs/constraints/engine.py`) uses an Expression IR:
 
 **Core Expression Types:**
 - `ConstString`, `ConstNumber`: Constants
@@ -86,7 +86,7 @@ The new engine (`jsflow/constraints/engine.py`) uses an Expression IR:
 
 **Path-Sensitive Solving:**
 ```python
-from jsflow.constraints import solve_path_sensitive
+from probejs.constraints import solve_path_sensitive
 
 G.solve_from = "; rm -rf /"
 for assertions, results in solve_path_sensitive(
@@ -99,7 +99,7 @@ for assertions, results in solve_path_sensitive(
 ## Usage Example
 
 ```python
-from jsflow.core.solver import solve2
+from probejs.core.solver import solve2
 
 G.solve_from = "; rm -rf /"  # OS command injection payload
 for assertions, results in solve2(G, final_objs=[sink_obj_id], initial_objs=[source_obj_id]):

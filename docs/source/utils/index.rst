@@ -1,7 +1,7 @@
 Utilities and Helpers
 =====================
 
-This section covers the utility functions and helper classes that support the core analysis functionality in jsflow.
+This section covers the utility functions and helper classes that support the core analysis functionality in probejs.
 
 .. note::
 

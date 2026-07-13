@@ -2,7 +2,7 @@
 
 ## Overview
 
-The jsflow module consists of several key components:
+The probejs module consists of several key components:
 
 ## Core Modules
 

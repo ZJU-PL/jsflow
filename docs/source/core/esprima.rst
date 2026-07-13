@@ -1,7 +1,7 @@
 Esprima Interface
 =================
 
-The ``esprima`` module provides the interface between jsflow and the Esprima JavaScript parser. It handles parsing JavaScript source code into ASTs and managing the communication with the Node.js Esprima process.
+The ``esprima`` module provides the interface between probejs and the Esprima JavaScript parser. It handles parsing JavaScript source code into ASTs and managing the communication with the Node.js Esprima process.
 
 Overview
 --------
@@ -10,7 +10,7 @@ The esprima interface is responsible for:
 
 * Parsing JavaScript source code into ASTs using Esprima
 * Managing the Node.js subprocess that runs Esprima
-* Converting Esprima AST format to jsflow's internal representation
+* Converting Esprima AST format to probejs's internal representation
 * Handling parsing errors and edge cases
 
 Architecture
@@ -45,7 +45,7 @@ Parsing JavaScript code is straightforward:
 
 .. code-block:: python
 
-   from jsflow.core.esprima import parse_js, parse_file
+   from probejs.core.esprima import parse_js, parse_file
 
    # Parse JavaScript string
    code = "var x = 42; console.log(x);"
@@ -123,7 +123,7 @@ The esprima interface manages a Node.js subprocess:
 
 .. code-block:: python
 
-   from jsflow.core.esprima import EsprimaParser
+   from probejs.core.esprima import EsprimaParser
 
    # Create parser instance
    parser = EsprimaParser()
@@ -228,8 +228,8 @@ The parsed AST is integrated with the graph construction:
 
 .. code-block:: python
 
-   from jsflow.core.esprima import parse_file
-   from jsflow.core.graph import Graph
+   from probejs.core.esprima import parse_file
+   from probejs.core.graph import Graph
 
    # Parse JavaScript file
    ast = parse_file('input.js')

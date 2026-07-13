@@ -1,15 +1,15 @@
 # PoC Generation Workflows
 
-jsflow supports two different PoC generation solutions. They share the same
+probejs supports two different PoC generation solutions. They share the same
 `report.json` contract, but they are separate implementations with different
 operational goals.
 
 ## Shared Report Contract
 
-Run jsflow with structured reporting and, when useful, auto-exploit solving:
+Run probejs with structured reporting and, when useful, auto-exploit solving:
 
 ```bash
-python -m jsflow --json -m -X -t os_command package/index.js
+python -m probejs --json -m -X -t os_command package/index.js
 ```
 
 The output report contains:
@@ -29,11 +29,11 @@ loaded only when the compact packet is insufficient or validation fails.
 
 ## Solution A: Interactive Skill Workflow
 
-Location: `skills/jsflow-poc-generation/`
+Location: `skills/probejs-poc-generation/`
 
 This solution is a Codex skill. It is intended for interactive use when a human
 or agent is already working inside this repository and wants guidance for
-turning one jsflow finding into a runnable PoC.
+turning one probejs finding into a runnable PoC.
 
 Use it when:
 

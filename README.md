@@ -1,10 +1,10 @@
-# jsflow
+# probejs
 
-**jsflow** is a static analysis tool for JavaScript that performs vulnerability detection and exploit generation through object graph generation. Its canonical machine-readable output is `report.json`, which is designed to feed downstream workflows such as PoC generation.
+**probejs** is a static analysis tool for JavaScript that performs vulnerability detection and exploit generation through object graph generation. Its canonical machine-readable output is `report.json`, which is designed to feed downstream workflows such as PoC generation.
 
 ## Overview
 
-jsflow is a JavaScript static analysis framework that:
+probejs is a JavaScript static analysis framework that:
 
 - **Generates Object Property Graphs (OPG)** from JavaScript source code
 - **Performs symbolic execution** to track data flows and control flows
@@ -45,7 +45,7 @@ This installs the package in editable mode with all dependencies defined in `pyp
 1. **Clone the repository** (if not already done):
    ```bash
    git clone <repository-url>
-   cd jsflow
+   cd probejs
    ```
 
 2. **Install npm dependencies** (for Esprima AST parser):
@@ -99,19 +99,19 @@ This script will automatically:
 
 ```bash
 # Analyze a JavaScript file
-python -m jsflow input.js
+python -m probejs input.js
 
 # Analyze with specific vulnerability type
-python -m jsflow -t os_command input.js
+python -m probejs -t os_command input.js
 
 # Emit a canonical JSON report
-python -m jsflow --json -t os_command input.js
+python -m probejs --json -t os_command input.js
 
 # Check for prototype pollution
-python -m jsflow -P input.js
+python -m probejs -P input.js
 
 # Disable JS-modeled stubs in builtin_packages/
-python -m jsflow --no-builtin-packages input.js
+python -m probejs --no-builtin-packages input.js
 ```
 
 The JSON report is written to the run log directory as:
@@ -136,12 +136,12 @@ The PoC-facing `finding.poc` object includes:
 This is the intended workflow:
 
 ```bash
-python -m jsflow --json -m -X -t os_command package/index.js
+python -m probejs --json -m -X -t os_command package/index.js
 ```
 
 PoC generation has two separate solutions:
 
-- **Interactive skill workflow**: use `skills/jsflow-poc-generation/` for one-off, human-assisted PoC work.
+- **Interactive skill workflow**: use `skills/probejs-poc-generation/` for one-off, human-assisted PoC work.
 - **Automated runner workflow**: use the `pocgen/` Python runner for reproducible batch generation with Codex/OpenCode/Claude-style CLIs, staged evidence loading, validation, and retries.
 
 Both should use `finding.poc.agent_packet` as the default agent input and treat the rest of `report.json` as an evidence store.
@@ -155,4 +155,4 @@ See [docs/USAGE.md](docs/USAGE.md) for detailed usage instructions, examples, an
 - **[Vulnerability Types](docs/VULNERABILITIES.md)**: Detailed information about each vulnerability type with examples
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)**: Limitations, common issues, debugging tips, and references
 - **[PoC Generation Workflows](docs/POC_GENERATION.md)**: Difference between the interactive skill and automated runner approaches
-- **[PoC Skill](skills/jsflow-poc-generation/SKILL.md)**: Agent skill for turning `report.json` findings into runnable PoCs
+- **[PoC Skill](skills/probejs-poc-generation/SKILL.md)**: Agent skill for turning `report.json` findings into runnable PoCs

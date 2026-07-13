@@ -1,7 +1,7 @@
 Constraints and Solving
 =======================
 
-This section covers the constraint generation and solving components that enable exploit generation and path validation in jsflow.
+This section covers the constraint generation and solving components that enable exploit generation and path validation in probejs.
 
 .. note::
 

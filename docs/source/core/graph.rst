@@ -1,7 +1,7 @@
 Graph Data Structure
 =====================
 
-The ``Graph`` class is the core data structure used by jsflow to represent JavaScript code analysis. It wraps a NetworkX MultiDiGraph with extensive helper methods for building and analyzing object property graphs.
+The ``Graph`` class is the core data structure used by probejs to represent JavaScript code analysis. It wraps a NetworkX MultiDiGraph with extensive helper methods for building and analyzing object property graphs.
 
 Overview
 --------
@@ -72,7 +72,7 @@ Usage Examples
 
 .. code-block:: python
 
-   from jsflow.core.graph import Graph
+   from probejs.core.graph import Graph
 
    # Create a new graph
    G = Graph()

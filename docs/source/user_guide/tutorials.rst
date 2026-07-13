@@ -1,7 +1,7 @@
 Tutorials
 =========
 
-This section provides step-by-step tutorials for using jsflow effectively.
+This section provides step-by-step tutorials for using probejs effectively.
 
 Tutorial 1: Basic Vulnerability Detection
 -----------------------------------------
@@ -35,7 +35,7 @@ Create a file called ``vulnerable_app.js``:
 
 .. code-block:: bash
 
-   python -m jsflow -t os_command vulnerable_app.js
+   python -m probejs -t os_command vulnerable_app.js
 
 **Step 3: Examine the results**
 
@@ -51,7 +51,7 @@ You should see output indicating that an OS command injection vulnerability was 
 
 .. code-block:: bash
 
-   python -m jsflow -X -t os_command vulnerable_app.js
+   python -m probejs -X -t os_command vulnerable_app.js
 
 The solver will attempt to generate concrete input values that would trigger the vulnerability.
 
@@ -88,7 +88,7 @@ Create a file called ``proto_pollution.js``:
 
 .. code-block:: bash
 
-   python -m jsflow -P proto_pollution.js
+   python -m probejs -P proto_pollution.js
 
 **Step 3: Check results**
 
@@ -133,13 +133,13 @@ Create the following files:
 
 .. code-block:: bash
 
-   python -m jsflow -m -t code_exec index.js
+   python -m probejs -m -t code_exec index.js
 
 **Step 3: Run all exported functions**
 
 .. code-block:: bash
 
-   python -m jsflow -m -a -t code_exec index.js
+   python -m probejs -m -a -t code_exec index.js
 
 Tutorial 4: Advanced Configuration
 ----------------------------------
@@ -152,7 +152,7 @@ For faster analysis on large codebases:
 
 .. code-block:: bash
 
-   python -m jsflow -s -t xss large_app.js
+   python -m probejs -s -t xss large_app.js
 
 **Coarse Analysis**
 
@@ -160,7 +160,7 @@ For quick vulnerability scanning:
 
 .. code-block:: bash
 
-   python -m jsflow -1 -t os_command app.js
+   python -m probejs -1 -t os_command app.js
 
 **Function Timeout**
 
@@ -168,7 +168,7 @@ Set time limits to prevent infinite loops:
 
 .. code-block:: bash
 
-   python -m jsflow -f 30 -t xss app.js
+   python -m probejs -f 30 -t xss app.js
 
 **Call Depth Limit**
 
@@ -176,19 +176,19 @@ Limit function call chain depth:
 
 .. code-block:: bash
 
-   python -m jsflow -c 2 -t nosql app.js
+   python -m probejs -c 2 -t nosql app.js
 
 Tutorial 5: Programmatic Usage
 ------------------------------
 
-This tutorial shows how to use jsflow programmatically.
+This tutorial shows how to use probejs programmatically.
 
 **Step 1: Basic programmatic analysis**
 
 .. code-block:: python
 
-   from jsflow.launcher import unittest_main
-   from jsflow.graph import Graph
+   from probejs.launcher import unittest_main
+   from probejs.graph import Graph
 
    # Analyze a file
    result, graph = unittest_main(
@@ -238,7 +238,7 @@ This tutorial demonstrates analyzing multiple files.
 .. code-block:: python
 
    import os
-   from jsflow.launcher import unittest_main
+   from probejs.launcher import unittest_main
 
    def analyze_directory(directory, vul_type):
        results = []

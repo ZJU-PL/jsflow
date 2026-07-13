@@ -1,7 +1,7 @@
 Operation Generator
 ===================
 
-The ``opgen`` module is responsible for traversing JavaScript ASTs and generating the operations that build the object property graph. It serves as the bridge between parsed JavaScript code and the graph-based analysis performed by jsflow.
+The ``opgen`` module is responsible for traversing JavaScript ASTs and generating the operations that build the object property graph. It serves as the bridge between parsed JavaScript code and the graph-based analysis performed by probejs.
 
 Overview
 --------
@@ -47,8 +47,8 @@ The operation generator uses the visitor pattern to traverse the AST:
 
 .. code-block:: python
 
-   from jsflow.core.opgen import OperationVisitor
-   from jsflow.core.esprima import parse_js
+   from probejs.core.opgen import OperationVisitor
+   from probejs.core.esprima import parse_js
 
    # Parse JavaScript code
    ast = parse_js("var x = 42;")
@@ -182,8 +182,8 @@ The generated operations are consumed by the Graph class to build the OPG:
 
 .. code-block:: python
 
-   from jsflow.core.opgen import OperationVisitor
-   from jsflow.core.graph import Graph
+   from probejs.core.opgen import OperationVisitor
+   from probejs.core.graph import Graph
 
    # Create graph and operation visitor
    graph = Graph()

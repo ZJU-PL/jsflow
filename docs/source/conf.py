@@ -17,9 +17,9 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'jsflow'
-copyright = '2024, jsflow Development Team'
-author = 'jsflow Development Team'
+project = 'probejs'
+copyright = '2024, probejs Development Team'
+author = 'probejs Development Team'
 
 # The full version, including alpha/beta/rc tags
 release = '1.0.0'
@@ -92,8 +92,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    ('index', 'jsflow.tex', 'jsflow Documentation',
-     'jsflow Development Team', 'manual'),
+    ('index', 'probejs.tex', 'probejs Documentation',
+     'probejs Development Team', 'manual'),
 ]
 
 # The master toctree document.

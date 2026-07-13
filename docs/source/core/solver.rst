@@ -1,7 +1,7 @@
 Constraint Solver
 =================
 
-The ``solver`` module provides constraint solving capabilities using Z3 for path analysis and exploit generation in jsflow. It builds constraint systems from operations along vulnerable paths and attempts to find concrete input values that trigger vulnerabilities.
+The ``solver`` module provides constraint solving capabilities using Z3 for path analysis and exploit generation in probejs. It builds constraint systems from operations along vulnerable paths and attempts to find concrete input values that trigger vulnerabilities.
 
 Overview
 --------
@@ -51,7 +51,7 @@ Constraints are built from operations along vulnerable paths:
 
 .. code-block:: python
 
-   from jsflow.core.solver import ConstraintBuilder
+   from probejs.core.solver import ConstraintBuilder
 
    # Create constraint builder
    builder = ConstraintBuilder()
@@ -112,7 +112,7 @@ The solver uses Z3 through a Python interface:
 
 .. code-block:: python
 
-   from jsflow.core.solver import Z3Solver
+   from probejs.core.solver import Z3Solver
    import z3
 
    # Create solver
@@ -172,7 +172,7 @@ Once constraints are solved, concrete exploits are generated:
 
 .. code-block:: python
 
-   from jsflow.core.solver import ExploitGenerator
+   from probejs.core.solver import ExploitGenerator
 
    generator = ExploitGenerator()
 

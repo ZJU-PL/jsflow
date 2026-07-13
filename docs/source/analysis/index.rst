@@ -1,7 +1,7 @@
 Analysis Components
 ===================
 
-This section covers the analysis components and frameworks in jsflow that handle vulnerability detection, exploit generation, and result processing.
+This section covers the analysis components and frameworks in probejs that handle vulnerability detection, exploit generation, and result processing.
 
 Overview
 --------
@@ -16,10 +16,10 @@ The analysis components are responsible for:
 Key Components
 --------------
 
-* **Vulnerability Analyzer** (``jsflow.analysis.vulnerability``): Core vulnerability detection engine
-* **Exploit Generator** (``jsflow.analysis.exploit``): Automatic exploit generation
-* **Result Processor** (``jsflow.analysis.results``): Analysis result processing and export
-* **Workflow Manager** (``jsflow.analysis.workflow``): Analysis workflow orchestration
+* **Vulnerability Analyzer** (``probejs.analysis.vulnerability``): Core vulnerability detection engine
+* **Exploit Generator** (``probejs.analysis.exploit``): Automatic exploit generation
+* **Result Processor** (``probejs.analysis.results``): Analysis result processing and export
+* **Workflow Manager** (``probejs.analysis.workflow``): Analysis workflow orchestration
 
 .. toctree::
    :maxdepth: 2

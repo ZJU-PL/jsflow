@@ -1,7 +1,7 @@
 Installation Guide
 ==================
 
-Installation guide for jsflow and its dependencies.
+Installation guide for probejs and its dependencies.
 
 Prerequisites
 -------------
@@ -18,7 +18,7 @@ Installation Steps
    .. code-block:: bash
 
       git clone <repository-url>
-      cd jsflow
+      cd probejs
 
 2. **Install npm dependencies** (for Esprima AST parser):
    .. code-block:: bash
@@ -97,11 +97,11 @@ To verify the installation:
 .. code-block:: bash
 
    # Test basic functionality
-   python -m jsflow --help
+   python -m probejs --help
 
    # Test with a simple JavaScript file
    echo "console.log('Hello, World!');" > test.js
-   python -m jsflow test.js
+   python -m probejs test.js
 
 If the installation is successful, you should see the help message and analysis output without errors.
 

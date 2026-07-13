@@ -1,12 +1,12 @@
 Trace Rules
 ===========
 
-Trace rules define patterns for detecting vulnerabilities in jsflow. They specify how data should flow from sources to sinks to constitute a vulnerability, and what operations along the path are considered malicious.
+Trace rules define patterns for detecting vulnerabilities in probejs. They specify how data should flow from sources to sinks to constitute a vulnerability, and what operations along the path are considered malicious.
 
 Overview
 --------
 
-Trace rules are the core vulnerability detection mechanism in jsflow. Each rule defines:
+Trace rules are the core vulnerability detection mechanism in probejs. Each rule defines:
 
 * **Sources**: Where untrusted data originates (e.g., HTTP request parameters)
 * **Sinks**: Where vulnerabilities can be exploited (e.g., ``eval()`` function)
@@ -32,7 +32,7 @@ A trace rule consists of several components:
 Built-in Trace Rules
 --------------------
 
-jsflow includes trace rules for several vulnerability types:
+probejs includes trace rules for several vulnerability types:
 
 OS Command Injection Rule
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -161,7 +161,7 @@ Trace rules are applied during graph analysis:
 
 .. code-block:: python
 
-   from jsflow.core.trace_rule import apply_trace_rules
+   from probejs.core.trace_rule import apply_trace_rules
 
    # Apply all trace rules to graph
    vulnerabilities = apply_trace_rules(graph, trace_rules)
@@ -210,7 +210,7 @@ Users can define custom trace rules:
 
 .. code-block:: python
 
-   from jsflow.core.trace_rule import TraceRule
+   from probejs.core.trace_rule import TraceRule
 
    # Custom SQL injection rule
    SQL_INJECTION_RULE = TraceRule(

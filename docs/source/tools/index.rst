@@ -1,7 +1,7 @@
 Tools and Interfaces
 ====================
 
-This section covers the command-line tools, user interfaces, and integration options available in jsflow.
+This section covers the command-line tools, user interfaces, and integration options available in probejs.
 
 .. note::
 

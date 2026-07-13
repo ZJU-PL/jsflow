@@ -1,7 +1,7 @@
-jsflow: JavaScript Static Analysis Framework
+probejs: JavaScript Static Analysis Framework
 ============================================
 
-jsflow is a comprehensive static analysis framework for JavaScript that performs vulnerability detection and exploit generation through object property graph generation and symbolic execution.
+probejs is a comprehensive static analysis framework for JavaScript that performs vulnerability detection and exploit generation through object property graph generation and symbolic execution.
 
 .. toctree::
    :maxdepth: 2
@@ -55,7 +55,7 @@ Supported Vulnerability Types
 Architecture Overview
 ---------------------
 
-jsflow consists of several key components:
+probejs consists of several key components:
 
 * **Core Analysis Engine**: Graph construction, symbolic execution, and constraint solving
 * **Vulnerability Detection**: Pattern matching and trace rule application

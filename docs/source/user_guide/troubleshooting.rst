@@ -1,7 +1,7 @@
 Troubleshooting
 ===============
 
-This section covers common issues, limitations, and debugging tips for using jsflow.
+This section covers common issues, limitations, and debugging tips for using probejs.
 
 Common Issues
 -------------
@@ -9,12 +9,12 @@ Common Issues
 Installation Problems
 ~~~~~~~~~~~~~~~~~~~~~~
 
-**Issue**: "ModuleNotFoundError: No module named 'jsflow'"
+**Issue**: "ModuleNotFoundError: No module named 'probejs'"
 **Solution**: Ensure you're in the correct directory and the Python virtual environment is activated:
 
 .. code-block:: bash
 
-   cd jsflow
+   cd probejs
    source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 **Issue**: "npm command not found"
@@ -35,7 +35,7 @@ Parsing Errors
 ~~~~~~~~~~~~~~
 
 **Issue**: "Failed to parse JavaScript file"
-**Solution**: Check that the JavaScript file is syntactically valid. jsflow uses Esprima for parsing, so any syntax errors will cause the analysis to fail.
+**Solution**: Check that the JavaScript file is syntactically valid. probejs uses Esprima for parsing, so any syntax errors will cause the analysis to fail.
 
 **Issue**: "AST generation failed"
 **Solution**: Ensure the esprima-csv dependencies are installed:
@@ -53,24 +53,24 @@ Analysis Issues
 .. code-block:: bash
 
    # Use single branch mode to prevent path explosion
-   python -m jsflow -s input.js
+   python -m probejs -s input.js
 
    # Set function timeout
-   python -m jsflow -f 30 input.js
+   python -m probejs -f 30 input.js
 
    # Use coarse analysis for faster results
-   python -m jsflow -1 input.js
+   python -m probejs -1 input.js
 
 **Issue**: "Out of memory" error
-**Solution**: jsflow can use significant memory for large codebases. Try:
+**Solution**: probejs can use significant memory for large codebases. Try:
 
 .. code-block:: bash
 
    # Limit call depth
-   python -m jsflow -c 2 input.js
+   python -m probejs -c 2 input.js
 
    # Use coarse analysis
-   python -m jsflow -1 input.js
+   python -m probejs -1 input.js
 
 **Issue**: No vulnerabilities found but you expect some
 **Solution**: Check these possibilities:
@@ -83,9 +83,9 @@ Analysis Issues
 False Positives
 ---------------
 
-jsflow may report false positives in certain scenarios:
+probejs may report false positives in certain scenarios:
 
-**Unrecognized Sanitization**: If jsflow doesn't recognize a sanitization function, it may treat sanitized input as still tainted.
+**Unrecognized Sanitization**: If probejs doesn't recognize a sanitization function, it may treat sanitized input as still tainted.
 
 **Solution**: You can extend the built-in function models or use the results as a starting point for manual review.
 
@@ -103,7 +103,7 @@ Limitations
 JavaScript Features
 ~~~~~~~~~~~~~~~~~~~
 
-jsflow has limited support for certain JavaScript features:
+probejs has limited support for certain JavaScript features:
 
 * **Dynamic Code Execution**: ``eval()`` and ``new Function()`` are modeled but complex cases may not be accurate
 * **Metaprogramming**: Proxies and Reflect API are not fully supported
@@ -134,7 +134,7 @@ Use the ``-p`` flag to print logs to console:
 
 .. code-block:: bash
 
-   python -m jsflow -p input.js
+   python -m probejs -p input.js
 
 Check Graph Construction
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -152,7 +152,7 @@ Use the ``-e`` flag to focus on specific entry functions:
 
 .. code-block:: bash
 
-   python -m jsflow -e vulnerableFunction input.js
+   python -m probejs -e vulnerableFunction input.js
 
 Export Graph for Visualization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -191,13 +191,13 @@ If you encounter issues not covered here:
 Best Practices
 --------------
 
-To get the most reliable results from jsflow:
+To get the most reliable results from probejs:
 
 * **Start Simple**: Begin with basic analysis and add complexity as needed
 * **Review Results**: Always manually review the reported vulnerabilities
-* **Combine Tools**: Use jsflow alongside other security tools for comprehensive coverage
+* **Combine Tools**: Use probejs alongside other security tools for comprehensive coverage
 * **Keep Models Updated**: Extend built-in models for your specific libraries and frameworks
-* **Test Regularly**: Incorporate jsflow into your CI/CD pipeline for continuous security monitoring
+* **Test Regularly**: Incorporate probejs into your CI/CD pipeline for continuous security monitoring
 
 Known Issues
 ------------
