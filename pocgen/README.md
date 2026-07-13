@@ -1,6 +1,6 @@
-# pocgen
+# pocgen (Experimental)
 
-`pocgen` is the automated PoC-generation runner for probejs reports.
+> **Disclaimer**: This is an **experimental** utility separate from probejs's core static analysis. It relies on external LLM-based coding agents (Codex, Claude, etc.) and does not perform automated exploitation.
 
 It is separate from `skills/probejs-poc-generation/`:
 

@@ -1,6 +1,8 @@
-# PoC Generation Workflows
+# PoC Generation Workflows (Experimental)
 
-probejs supports two different PoC generation solutions. They share the same
+> **Disclaimer**: The PoC generation utilities described in this document are **experimental** and **separate from probejs's core static analysis pipeline**. They consume `report.json` output as input but rely on external LLM-based coding agents (e.g., Codex, Claude) rather than automated symbolic reasoning. Results are not guaranteed and should be manually validated.
+
+probejs ships with two experimental PoC generation solutions. They share the same
 `report.json` contract, but they are separate implementations with different
 operational goals.
 

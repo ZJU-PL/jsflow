@@ -40,7 +40,7 @@ python -m probejs -p input.js
 - `-F, --nfb, --no-file-based`: Disable file-based analysis
 - `-C, --rcf, --rough-control-flow`: Enable rough control flow analysis
 - `-D, --rcd, --rough-call-distance`: Enable rough call distance
-- `-X, --exploit, --auto-exploit`: Enable automatic exploit generation
+- `-X, --solver, --path-feasibility`: Enable heuristic Z3 path feasibility check (experimental; does not generate runnable exploits)
 - `--json`: Write a structured JSON report to the run log directory
 - `--report-dir`: Override the output directory for structured reports
 - `-1, --coarse-only`: Coarse analysis only
@@ -109,9 +109,9 @@ python -m probejs -m -t xss package/index.js
 python -m probejs -m -a package/index.js
 ```
 
-### Example 3: Constraint Solving
+### Example 3: Path Feasibility Check (Experimental)
 
-When using the `-X` (auto-exploit) flag, probejs will attempt to generate concrete input values that trigger vulnerabilities:
+When using the `-X` flag, probejs runs a heuristic Z3-based check on vulnerable paths. This determines whether the path constraints are satisfiable, but **does not generate runnable exploits**:
 
 ```bash
 python -m probejs -X -t os_command vulnerable.js
@@ -127,32 +127,10 @@ python -m probejs --json -t os_command vulnerable.js
 
 This writes:
 
-- `report.json` - canonical probejs finding data with code snippets, rule diagnostics, and exploit candidates
+- `report.json` - canonical probejs finding data with code snippets, trace rule diagnostics, and path evidence
 - `report.schema.json` - the schema for `report.json`
 
-Each finding in `report.json` also includes a `poc_guidance` block with PoC-oriented guidance such as:
-
-- compact `agent_packet` for coding agents
-- recovered public entrypoint
-- suggested invocation shape
-- application-level sink
-- deduplicated payload candidates
-- suggested oracle
-- hybrid thin-slice evidence and runtime hints
-
-Use `finding.poc.agent_packet` as the default input for Codex/OpenCode/Claude-style coding agents. Treat the rest of `finding.poc` and `report.json` as evidence to read only when the compact packet is insufficient or validation fails.
-
-There are two separate PoC generation solutions:
-
-- **Interactive skill workflow**: `skills/probejs-poc-generation/` for one-off, human-assisted PoC generation.
-- **Automated runner workflow**: `pocgen/` Python runner for reproducible batch generation, staged evidence loading, validation, and retries.
-
-See [PoC Generation Workflows](POC_GENERATION.md) for the detailed distinction.
-
-The solver builds constraints from operations like:
-- String concatenation: `result = "prefix" + userInput + "suffix"`
-- Numeric addition: `result = baseValue + userInput`
-- Conditional constraints: `if (userInput.contains("danger"))`
+> **Note**: The `pocgen/` directory and `skills/probejs-poc-generation/` contain **experimental** utilities that consume `report.json` to assist with manual PoC generation. These are separate from the core static analysis pipeline and are not part of probejs's automated analysis. See [PoC Generation Workflows](POC_GENERATION.md) for details.
 
 ## Advanced Configuration
 

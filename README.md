@@ -1,14 +1,14 @@
 # probejs
 
-**probejs** is a static analysis tool for JavaScript that performs vulnerability detection and exploit generation through object graph generation. Its canonical machine-readable output is `report.json`, which is designed to feed downstream workflows such as PoC generation.
+**probejs** is a static analysis tool for JavaScript that detects taint-style vulnerabilities via Object Property Graph (OPG) construction and flow-based trace rules. Its canonical machine-readable output is `report.json`.
 
 ## Overview
 
 probejs is a JavaScript static analysis framework that:
 
 - **Generates Object Property Graphs (OPG)** from JavaScript source code
-- **Performs symbolic execution** to track data flows and control flows
-- **Detects vulnerabilities** including:
+- **Statically tracks object property flows** by simulating assignments, property accesses, and function calls
+- **Detects taint-style vulnerabilities** including:
   - OS command injection
   - Cross-site scripting (XSS)
   - Code execution vulnerabilities
@@ -16,9 +16,9 @@ probejs is a JavaScript static analysis framework that:
   - Internal property tampering
   - Path traversal
   - NoSQL injection
-- **Emits canonical JSON bug reports** with source snippets, path diagnostics, exploit candidates, and PoC-oriented guidance
+- **Emits structured JSON bug reports** with source snippets, path diagnostics, and trace rule evaluations
 - **Exports analysis results** to CSV/TSV format for further processing
-- **Supports module analysis** for npm packages
+- **Supports npm package analysis**
 
 ## Architecture
 
@@ -83,7 +83,7 @@ This script will automatically:
 ### Python Dependencies
 
 - `networkx` (~=2.4): Graph data structure library
-- `z3-solver` (~=4.8.8.0): Constraint solving for path analysis
+- `z3-solver` (~=4.8.8.0): Heuristic path feasibility check (used only with `-X` flag)
 - `sty` (~=1.0.0rc0): Terminal styling and formatting
 - `func_timeout` (~=4.3.5): Function timeout handling
 - `tqdm` (~=4.48.2): Progress bars for long-running operations
@@ -114,39 +114,14 @@ python -m probejs -P input.js
 python -m probejs --no-builtin-packages input.js
 ```
 
-The JSON report is written to the run log directory as:
+When `--json` is passed, the JSON report is written to the run log directory as:
 
-- `report.json`: canonical bug report data
+- `report.json`: structured bug report with source snippets, path diagnostics, and trace rule evaluations
 - `report.schema.json`: schema for the report format
 
-Each finding in `report.json` includes a normalized PoC-ready payload under `finding.poc`, plus compatibility guidance under `finding.poc_guidance`.
-
-The PoC-facing `finding.poc` object includes:
-
-- a compact `agent_packet` intended as the default input to coding agents
-- target package and entry file details
-- invocation mode and candidate call shapes
-- source and sink records
-- hybrid thin-slice evidence
-- deduplicated payload candidates
-- suggested oracle
-- runtime, harness, and validation hints
-- validation state placeholders
-
-This is the intended workflow:
-
-```bash
-python -m probejs --json -m -X -t os_command package/index.js
-```
-
-PoC generation has two separate solutions:
-
-- **Interactive skill workflow**: use `skills/probejs-poc-generation/` for one-off, human-assisted PoC work.
-- **Automated runner workflow**: use the `pocgen/` Python runner for reproducible batch generation with Codex/OpenCode/Claude-style CLIs, staged evidence loading, validation, and retries.
-
-Both should use `finding.poc.agent_packet` as the default agent input and treat the rest of `report.json` as an evidence store.
-
 See [docs/USAGE.md](docs/USAGE.md) for detailed usage instructions, examples, and advanced configuration.
+
+> **Experimental: PoC generation utilities.** The directories `pocgen/` and `skills/probejs-poc-generation/` contain experimental utilities that consume `report.json` to assist with proof-of-concept generation. These are **separate from the core analysis pipeline** and currently rely on LLM-based coding agents (e.g., Codex, Claude) rather than automated symbolic reasoning.
 
 ## Documentation
 

@@ -3,7 +3,9 @@ name: probejs-poc-generation
 description: Generate minimal runnable PoCs from probejs findings, raw taint summaries, or vulnerability reports for JavaScript targets.
 ---
 
-# ProbeJS PoC Generation
+# ProbeJS PoC Generation (Experimental)
+
+> **Disclaimer**: This skill is an **experimental** utility separate from probejs's core static analysis. It consumes `report.json` output but relies on manual inspection and external LLM-based coding agents. Generated PoCs should always be manually validated.
 
 Use this skill when a probejs report needs to be turned into a concrete, minimal PoC.
 

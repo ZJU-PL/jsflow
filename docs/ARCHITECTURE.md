@@ -11,7 +11,7 @@ The probejs module consists of several key components:
 - **`launcher.py`**: Main entry point and command-line interface
 - **`vul_checking.py`**: Vulnerability detection engine that applies trace rules to identify security issues
 - **`trace_rule.py`**: Defines trace rules for vulnerability pattern matching
-- **`solver.py`**: Constraint solver using Z3 for path feasibility analysis and exploit generation. Implements `solve2()` which builds constraint systems from graph operations (string concatenation, numeric addition) and solves them to determine if vulnerable paths are reachable
+- **`solver.py`**: Heuristic Z3-based path feasibility check. Implements `solve2()` which builds lightweight constraint systems from `CONTRIBUTES_TO` graph edges (string concatenation, numeric addition) and checks reachability. This is used only when the `-X` flag is passed.
 - **`modeled_js_builtins.py`**: Models JavaScript built-in functions and objects
 - **`modeled_builtin_modules.py`**: Models Node.js built-in modules (fs, child_process, etc.)
 
@@ -58,17 +58,15 @@ The probejs module consists of several key components:
    - Sinks are identified based on vulnerability type (e.g., `child_process.exec()` for OS command injection)
    - Path analysis finds all possible data flow paths from sources to sinks
 
-6. **Constraint Solving**: For each vulnerable path, the solver:
-   - Builds a Z3 constraint system representing the operations along the path
+6. **Path Feasibility (optional, `-X` flag)**: When the `-X` flag is passed, the solver performs a heuristic feasibility check:
+   - Builds a Z3 constraint system from the `CONTRIBUTES_TO` edges along each vulnerable path
    - Models string concatenations and numeric additions as constraints
-   - Checks path feasibility (whether the path can be executed)
-   - Generates concrete input values that would trigger the vulnerability (if `-X` flag is used)
+   - Checks whether the path constraints are satisfiable (i.e., not trivially infeasible)
 
 7. **Path Reporting**: Vulnerable paths are reported with:
    - Line numbers and code snippets
    - Source and sink locations
-   - Constraint system (if solving succeeded)
-   - Exploit payloads (if auto-exploit is enabled)
+   - Trace rule evaluation details
 
 ## Output Format
 
