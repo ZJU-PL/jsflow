@@ -1,5 +1,5 @@
 """
-Constraint Engine - Expression IR and Z3 encoding for exploit generation.
+Constraint Engine - Expression IR and Z3 encoding for path feasibility checking.
 
 This package provides a modern constraint solving system built on an
 intermediate representation (IR) of expressions and conditions. It offers

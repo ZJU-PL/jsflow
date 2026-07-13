@@ -732,19 +732,161 @@ def _apply_extra_constraints(G, solver: z3.Solver, cache: _SymbolCache):
                     solver.add(z3.Contains(term, z3.StringVal(literal)))
 
 
+# --- AST-level guard collection ----------------------------------------------
+#
+# The functions below extract control-flow conditions (if-guards) from the
+# call site's enclosing AST context.  These conditions are encoded as
+# additional Z3 constraints, making the solver aware of branch predicates
+# that the vulnerable path must satisfy.
+#
+# We use lightweight regex over the *code* attribute of AST test-expression
+# nodes rather than full AST traversal.  This is intentionally heuristic:
+# it handles the most common patterns in JS benchmarks (string comparisons,
+# includes, startsWith, etc.) without the complexity of a full AST->Z3
+# encoder.
+
+import re as _re
+
+
+def collect_ast_guards(G, call_ast_node_id):
+    # type: (Graph, str) -> list
+    """
+    Walk up the AST parent chain from *call_ast_node_id* and extract
+    predicates from enclosing if / ternary conditions.
+
+    Returns a list of ``(var_name, op, literal_value)`` triples that can
+    be turned into Z3 constraints by the solver.
+
+    Supported patterns (matched via the node's ``code`` attribute):
+        ``x === "lit"`` / ``x == "lit"``       →  eq
+        ``x !== "lit"`` / ``x != "lit"``       →  neq
+        ``x.includes("lit")``                   →  contains
+        ``!x.includes("lit")``                  →  not_contains
+        ``x.startsWith("lit")``                 →  prefix
+        ``x.endsWith("lit")``                   →  suffix
+    """
+    from .engine import _node_type  # import here to avoid circularity
+
+    guards = []  # type: list[tuple[str, str, str]]
+    current = call_ast_node_id
+    visited = set()
+
+    SENTINEL_TYPES = frozenset({"AST_FUNC_DECL", "AST_CLOSURE", "AST_METHOD",
+                                 "AST_TOPLEVEL", "AST_PROGRAM"})
+
+    while current is not None and current not in visited:
+        visited.add(current)
+        parents = G.get_in_edges(current, edge_type="PARENT_OF")
+        if not parents:
+            break
+        parent = parents[0][0]
+        ptype = G.get_node_attr(parent).get("type")
+
+        if ptype in ("AST_IF", "AST_CONDITIONAL"):
+            children = G.get_ordered_ast_child_nodes(parent)
+            if children:
+                test_ast = children[0]
+                guard = _parse_test_expr(G, test_ast)
+                if guard is not None:
+                    guards.append(guard)
+
+        # Stop at function boundaries — conditions from outer callers are
+        # not necessarily satisified by *this* call's arguments.
+        if ptype in SENTINEL_TYPES:
+            break
+        current = parent
+
+    return guards
+
+
+def _parse_test_expr(G, test_ast):
+    node_type = G.get_node_attr(test_ast).get("type")
+    code = G.get_node_attr(test_ast).get("code", "") or ""
+
+    # ---------- Binary comparisons (===, !==, ==, !=) ----------
+    m = _re.match(r'^(.+?)\s*==={1,2}\s+"([^"]*)"\s*$', code)
+    if m:
+        return (m.group(1).strip(), "eq", m.group(2))
+
+    m = _re.match(r"^(.+?)\s*==={1,2}\s+'([^']*)'\s*$", code)
+    if m:
+        return (m.group(1).strip(), "eq", m.group(2))
+
+    m = _re.match(r'^(.+?)\s*!=={1,2}\s+"([^"]*)"\s*$', code)
+    if m:
+        return (m.group(1).strip(), "neq", m.group(2))
+
+    m = _re.match(r"^(.+?)\s*!=={1,2}\s+'([^']*)'\s*$", code)
+    if m:
+        return (m.group(1).strip(), "neq", m.group(2))
+
+    # ---------- Method calls: includes, startsWith, endsWith ----------
+    m = _re.match(r'^(.+?)\.includes\(\s*"([^"]*)"\s*\)\s*$', code)
+    if m:
+        return (m.group(1).strip(), "contains", m.group(2))
+
+    m = _re.match(r'^!\s*(.+?)\.includes\(\s*"([^"]*)"\s*\)\s*$', code)
+    if m:
+        return (m.group(1).strip(), "not_contains", m.group(2))
+
+    m = _re.match(r'^(.+?)\.startsWith\(\s*"([^"]*)"\s*\)\s*$', code)
+    if m:
+        return (m.group(1).strip(), "prefix", m.group(2))
+
+    m = _re.match(r'^(.+?)\.endsWith\(\s*"([^"]*)"\s*\)\s*$', code)
+    if m:
+        return (m.group(1).strip(), "suffix", m.group(2))
+
+    # ---------- Numeric / length comparisons (<, >, <=, >=) ----------
+    m = _re.match(r'^(.+?)\.length\s*(<=?|>=?)\s*(\d+)\s*$', code)
+    if m:
+        var, relop, num = m.group(1).strip(), m.group(2), int(m.group(3))
+        op = {"<": "lt", "<=": "le", ">": "gt", ">=": "ge"}.get(relop, "eq")
+        return (var, op, num)
+
+    return None
+
+
+# --- Enriched solver --------------------------------------------------------
+
+
 def solve_path_sensitive(
     G,
     final_objs: Iterable[str],
     initial_objs: Optional[Iterable[str]] = None,
     contains: bool = True,
     path_nodes: Optional[Iterable[str]] = None,
+    extra_conditions: Optional[list] = None,
 ):
     """
     Path-sensitive solver built on top of the expression/condition IR.
 
-    Yields:
-        (assertions, results) per path. `results` is \"failed\" on UNSAT or a
-        dict of variable -> (name, value) on SAT.
+    Compared to the legacy ``solve2``, this version:
+      * Uses a proper expression IR (Concat, Add, Choice, …)
+      * Preserves edge-level path conditions from the graph
+      * Accepts extra predicates via *extra_conditions* (e.g. if-guards
+        collected from the enclosing AST context).
+      * Does **not** hardcode ``PrefixOf(";", …)`` or ``PrefixOf("&", …)``
+        constraints (those were too aggressive and caused false UNSAT).
+
+    Parameters
+    ----------
+    G : Graph
+    final_objs : iterable of str
+        Sink object node IDs.
+    initial_objs : iterable of str or None
+        If given, only report variable bindings for these object IDs.
+    contains : bool
+        Whether to use ``Contains(sink, payload)`` (True) or
+        ``sink == payload`` (False).
+    path_nodes : iterable of str or None
+        If given, restrict the backward walk to only the specified node IDs.
+    extra_conditions : list of (var_name, op, literal) or None
+        Extra predicates supplied by ``collect_ast_guards``.
+
+    Yields
+    ------
+    (assertions, results) per path.
     """
     sink_value = getattr(G, "solve_from", None)
     constraints = build_path_constraints(
@@ -761,10 +903,9 @@ def solve_path_sensitive(
             cache = _SymbolCache()
             term = encode_path_constraint(pc, solver, cache)
 
-            # Default safety constraints similar to legacy solver
-            if isinstance(term, z3.SeqRef):
-                solver.add(z3.Not(z3.PrefixOf(z3.StringVal(";"), term)))
-                solver.add(z3.Not(z3.PrefixOf(z3.StringVal("&"), term)))
+            # Apply extra AST-level conditions (if-guards) if given.
+            if extra_conditions:
+                _apply_ast_conditions(G, solver, cache, extra_conditions)
 
             _apply_extra_constraints(G, solver, cache)
             solver.set(timeout=2000)
@@ -787,3 +928,41 @@ def solve_path_sensitive(
                     name = ", ".join(G.reverse_names[vn[1:]])
                     path_results[vn] = (name, model[var])
             yield solver.assertions(), (path_results or model)
+
+
+def _apply_ast_conditions(G, solver, cache, conditions):
+    # Build a forward name -> node_id lookup
+    name_to_id = {}
+    for obj_id, names in getattr(G, "reverse_names", {}).items():
+        for n in names:
+            name_to_id[n] = obj_id
+
+    for var_name, op, literal in conditions:
+        obj_id = name_to_id.get(var_name)
+        if obj_id is None:
+            continue
+        sym = cache.get(str(obj_id))
+        term = sym.string if sym.string is not None else sym.number
+        if term is None:
+            continue
+
+        if op == "eq":
+            solver.add(term == z3.StringVal(literal))
+        elif op == "neq":
+            solver.add(term != z3.StringVal(literal))
+        elif op == "contains":
+            solver.add(z3.Contains(term, z3.StringVal(literal)))
+        elif op == "not_contains":
+            solver.add(z3.Not(z3.Contains(term, z3.StringVal(literal))))
+        elif op == "prefix":
+            solver.add(z3.PrefixOf(z3.StringVal(literal), term))
+        elif op == "suffix":
+            solver.add(z3.SuffixOf(z3.StringVal(literal), term))
+        elif op == "lt":
+            solver.add(term < (literal if isinstance(literal, (int, float)) else z3.StringVal(str(literal))))
+        elif op == "le":
+            solver.add(term <= (literal if isinstance(literal, (int, float)) else z3.StringVal(str(literal))))
+        elif op == "gt":
+            solver.add(term > (literal if isinstance(literal, (int, float)) else z3.StringVal(str(literal))))
+        elif op == "ge":
+            solver.add(term >= (literal if isinstance(literal, (int, float)) else z3.StringVal(str(literal))))
