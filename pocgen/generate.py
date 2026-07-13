@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Automated jsflow PoC generation runner."""
+"""Automated probejs PoC generation runner."""
 
 from __future__ import annotations
 
@@ -247,8 +247,8 @@ def _overall_status(attempts: list[dict[str, Any]], validation: dict[str, Any]) 
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Generate and validate PoCs from jsflow reports")
-    ap.add_argument("--report", required=True, help="path to jsflow report.json")
+    ap = argparse.ArgumentParser(description="Generate and validate PoCs from probejs reports")
+    ap.add_argument("--report", required=True, help="path to probejs report.json")
     ap.add_argument("--finding", default="0", help="finding index or finding id (default: 0)")
     ap.add_argument("--output", required=True, help="directory for generated PoC artifacts")
     ap.add_argument("--codebase", help="override target package root for the coding agent")

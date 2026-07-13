@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 SUCCESS_RE = re.compile(
-    r"^\s*(?:PASS|JSFLOW_POC_SUCCESS|POC_SUCCESS|poc success)\s*$",
+    r"^\s*(?:PASS|PROBEJS_POC_SUCCESS|POC_SUCCESS|poc success)\s*$",
     re.IGNORECASE | re.MULTILINE,
 )
 

@@ -1,4 +1,4 @@
-You are repairing a generated JavaScript PoC for a jsflow finding.
+You are repairing a generated JavaScript PoC for a probejs finding.
 
 The previous attempt did not validate. Use the compact packet first, then the
 new staged evidence if it explains the failure. Keep the PoC minimal and safe.

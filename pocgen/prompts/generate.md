@@ -1,4 +1,4 @@
-You are generating a minimal, safe JavaScript PoC for a jsflow finding.
+You are generating a minimal, safe JavaScript PoC for a probejs finding.
 
 Use the compact agent packet as the primary task contract. Treat the evidence
 section as optional supporting material. Do not inspect the full report unless

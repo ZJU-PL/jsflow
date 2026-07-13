@@ -1,4 +1,4 @@
-"""Helpers for extracting agent-facing PoC packets from jsflow reports."""
+"""Helpers for extracting agent-facing PoC packets from probejs reports."""
 
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ def extract_agent_packet(finding: dict[str, Any]) -> dict[str, Any]:
 
     # Compatibility fallback for older report versions.
     return {
-        "purpose": "Generate the smallest safe PoC harness for this jsflow finding.",
+        "purpose": "Generate the smallest safe PoC harness for this probejs finding.",
         "finding_id": finding.get("id") or poc.get("finding_id"),
         "vulnerability_type": poc.get("vulnerability_type"),
         "target": {

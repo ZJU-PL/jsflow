@@ -1,2 +1,2 @@
-"""Automated jsflow PoC generation runner."""
+"""Automated probejs PoC generation runner."""
 

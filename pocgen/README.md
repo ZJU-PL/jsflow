@@ -1,8 +1,8 @@
 # pocgen
 
-`pocgen` is the automated PoC-generation runner for jsflow reports.
+`pocgen` is the automated PoC-generation runner for probejs reports.
 
-It is separate from `skills/jsflow-poc-generation/`:
+It is separate from `skills/probejs-poc-generation/`:
 
 - the skill is the interactive/manual workflow,
 - `pocgen` is the reproducible Python runner that can call CLI coding agents,
@@ -41,7 +41,7 @@ agent:
 python pocgen/generate.py \
   --report logs/<timestamp>/report.json \
   --finding 0 \
-  --output /tmp/jsflow-pocgen-case \
+  --output /tmp/probejs-pocgen-case \
   --dry-run
 ```
 

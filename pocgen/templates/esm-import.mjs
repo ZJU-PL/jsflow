@@ -1,7 +1,7 @@
 // Minimal ESM PoC template. Fill in the target import, payload, call, and
 // mocked sink assertion.
 
-const payload = 'JSFLOW_POC_PAYLOAD';
+const payload = 'PROBEJS_POC_PAYLOAD';
 
 async function main() {
   // const target = await import('./index.js');
