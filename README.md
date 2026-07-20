@@ -1,6 +1,6 @@
 # probejs
 
-**probejs** is a static analysis tool for JavaScript that detects taint-style vulnerabilities via Object Property Graph (OPG) construction and flow-based trace rules. Its canonical machine-readable output is `report.json`.
+**probejs** is a static analysis tool for JavaScript and TypeScript that detects taint-style vulnerabilities via Object Property Graph (OPG) construction and flow-based trace rules. Its canonical machine-readable output is `report.json`.
 
 ## Overview
 
@@ -48,13 +48,15 @@ This installs the package in editable mode with all dependencies defined in `pyp
    cd probejs
    ```
 
-2. **Install npm dependencies** (for Esprima AST parser):
+2. **Install npm dependencies** (for JavaScript and TypeScript parsing):
    ```bash
    cd esprima-csv && npm install && cd ..
    ```
    
    This installs:
    - `esprima` (^4.0.1): JavaScript parser
+   - `typescript` (^5.9): TypeScript/TSX lowering and project configuration support
+   - `source-map` (^0.6.1): Original TypeScript source location mapping
    - `commander` (^3.0.2): Command-line interface utilities
    - `ansicolor` (^1.1.84): Terminal color output
 
@@ -98,8 +100,15 @@ This script will automatically:
 ## Quick Start
 
 ```bash
-# Analyze a JavaScript file
+# Analyze a JavaScript or TypeScript file
 python -m probejs input.js
+python -m probejs input.ts
+
+# Analyze a TypeScript project directory
+python -m probejs ./src
+
+# Parse TypeScript supplied on stdin
+printf 'const value: string = process.argv[2];' | python -m probejs --typescript -
 
 # Analyze with specific vulnerability type
 python -m probejs -t os_command input.js
@@ -120,6 +129,26 @@ When `--json` is passed, the JSON report is written to the run log directory as:
 - `report.schema.json`: schema for the report format
 
 See [docs/USAGE.md](docs/USAGE.md) for detailed usage instructions, examples, and advanced configuration.
+
+### TypeScript support
+
+TypeScript files (`.ts`, `.tsx`, `.mts`, and `.cts`) and ArkTS `.ets` files are automatically lowered to CommonJS before the existing JavaScript AST pipeline runs. The frontend:
+
+- removes type-only syntax while preserving runtime behavior
+- converts ES module imports/exports to the existing module-analysis representation
+- follows transitive TypeScript imports
+- compiles the nearest `tsconfig.json` as a project, including project references
+- resolves `baseUrl`/`paths`, package `exports`/`imports`, and workspace packages
+- maps AST locations and reports back to the original TypeScript source
+- lowers TSX and modern JavaScript syntax to parser-compatible JavaScript
+- models `tslib` interop/decorator helpers and uses declaration signatures to identify callback arguments
+- normalizes common ArkTS component syntax (`struct`, state/component decorators, and declarative UI blocks) and treats `@Entry` build bodies as analysis entrypoints
+- prefers the project's installed TypeScript compiler and records compiler diagnostics/version information in `report.json`
+- recognizes callback properties in typed options objects and common Fastify, NestJS, EventEmitter, Commander, Yargs, worker, and serverless entrypoints
+- reads HarmonyOS `build-profile.json5`, `module.json5`, and `oh-package.json5` project metadata
+- consumes existing external or inline JavaScript source maps when analyzing generated CommonJS
+
+Declaration files (`.d.ts`, `.d.mts`, and `.d.cts`) are not emitted as runtime files, but their signatures inform callback and promise metadata. Common generated/dependency directories are skipped during directory analysis. Type errors do not prevent emission because probejs analyzes runtime flows.
 
 > **Experimental: PoC generation utilities.** The directories `pocgen/` and `skills/probejs-poc-generation/` contain experimental utilities that consume `report.json` to assist with proof-of-concept generation. These are **separate from the core analysis pipeline** and currently rely on LLM-based coding agents (e.g., Codex, Claude) rather than automated symbolic reasoning.
 

@@ -2,17 +2,17 @@ module.exports = {
     EventEmitter: function(options){
     }
 }
-module.exports.EventEmitter.prototype.addListener = function (eventName, listener){};
+module.exports.EventEmitter.prototype.addListener = function (eventName, listener){ OPGen_markTaintCall(listener); return this; };
 module.exports.EventEmitter.prototype.emit = function (eventName, ...args){};
 module.exports.EventEmitter.prototype.eventNames = function (){};
 module.exports.EventEmitter.prototype.getMaxListeners = function (){};
 module.exports.EventEmitter.prototype.listenerCount = function (eventName){};
 module.exports.EventEmitter.prototype.listeners = function (eventName){};
 module.exports.EventEmitter.prototype.off = function (eventName, listener){};
-module.exports.EventEmitter.prototype.on = function (eventName, listener){};
-module.exports.EventEmitter.prototype.once = function (eventName, listener){};
-module.exports.EventEmitter.prototype.prependListener = function (eventName, listener){};
-module.exports.EventEmitter.prototype.prependOnceListener = function (eventName, listener){};
+module.exports.EventEmitter.prototype.on = function (eventName, listener){ OPGen_markTaintCall(listener); return this; };
+module.exports.EventEmitter.prototype.once = function (eventName, listener){ OPGen_markTaintCall(listener); return this; };
+module.exports.EventEmitter.prototype.prependListener = function (eventName, listener){ OPGen_markTaintCall(listener); return this; };
+module.exports.EventEmitter.prototype.prependOnceListener = function (eventName, listener){ OPGen_markTaintCall(listener); return this; };
 module.exports.EventEmitter.prototype.removeAllListeners = function (eventName){};
 module.exports.EventEmitter.prototype.removeListener = function (eventName, listener){};
 module.exports.EventEmitter.prototype.setMaxListeners = function (n){};

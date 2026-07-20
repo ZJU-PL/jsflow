@@ -56,6 +56,52 @@
       },
       "additionalProperties": true
     },
+    "frontend": {
+      "type": "object",
+      "properties": {
+        "compilers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": { "type": "string" },
+              "version": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source": { "type": "string" },
+              "code": { "type": "string" },
+              "category": { "type": "string" },
+              "message": { "type": "string" },
+              "file": { "type": ["string", "null"] },
+              "line": { "type": ["integer", "null"] },
+              "column": { "type": ["integer", "null"] }
+            },
+            "additionalProperties": true
+          }
+        },
+        "arkts_projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "root": { "type": "string" },
+              "buildProfile": { "type": "string" },
+              "modules": { "type": "array" },
+              "dependencies": { "type": "object" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
     "exploit_results": {
       "type": "array",
       "items": {

@@ -5,6 +5,7 @@ function option(str) {
 
 function action(cb) {
   OPGen_markTaintCall(cb);
+  return _this;
 }
 
 function command(comd) {

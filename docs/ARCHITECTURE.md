@@ -20,14 +20,24 @@ The probejs module consists of several key components:
 - **`logger.py`**: Logging utilities with file and console output support
 - **`helpers.py`**: Utility functions for JavaScript value handling
 - **`utilities.py`**: Data structures and utilities for branch tracking
-- **`esprima.py`**: JavaScript parser interface
+- **`esprima.py`**: JavaScript/TypeScript parser interface
 - **`vul_func_lists.py`**: Lists of vulnerable function signatures
 
 ## How It Works
 
 ### Analysis Pipeline
 
-1. **Parsing**: JavaScript source code is parsed into an Abstract Syntax Tree (AST) using Esprima
+1. **Parsing**: JavaScript source is parsed with Esprima; TypeScript/TSX/ArkTS is first lowered to CommonJS and then parsed into the same normalized AST
+   - ES module imports/exports in TypeScript are lowered to the module representation already modeled by probejs
+   - The nearest `tsconfig.json` is compiled as a cached project; referenced projects are compiled recursively
+   - Module resolution covers tsconfig aliases, package exports/imports, and workspace source packages
+   - `tslib` helpers are represented by a small analysis model instead of expanding compiler boilerplate at every call site
+   - Type declaration signatures annotate callback arguments and promise-returning calls without introducing a second TypeScript AST pipeline
+   - The project-local TypeScript installation is preferred over the bundled fallback
+   - Existing inline/external source maps on generated JavaScript are chained into source reporting
+   - Structured compiler diagnostics and HarmonyOS project manifests are retained in the analysis report
+   - ArkTS `.ets` files use a line-preserving normalization for common ArkUI component syntax before CommonJS emission
+   - Source maps restore original TypeScript line and column information
    - The AST is converted to CSV format for processing
    - Each node is assigned a unique identifier
 
@@ -117,5 +127,3 @@ Analysis results are saved in timestamped directories under `logs/` (e.g., `logs
   - File path
   - Line number
   - Vulnerability type
-
-

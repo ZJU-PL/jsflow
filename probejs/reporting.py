@@ -1015,6 +1015,17 @@ def build_analysis_report(
             "num_prec_cf_paths": getattr(G, "num_of_prec_cf_paths", None),
             "num_full_cf_paths": getattr(G, "num_of_full_cf_paths", None),
             "reruns": getattr(G, "rerun_counter", None),
+            "frontend_diagnostics": len(getattr(G, "frontend_diagnostics", [])),
+            "frontend_errors": sum(
+                1
+                for diagnostic in getattr(G, "frontend_diagnostics", [])
+                if diagnostic.get("category") == "error"
+            ),
+        },
+        "frontend": {
+            "compilers": getattr(G, "frontend_compilers", []),
+            "diagnostics": getattr(G, "frontend_diagnostics", []),
+            "arkts_projects": getattr(G, "arkts_projects", []),
         },
         "exploit_results": _serialize_exploit_reports(exploit_reports),
         "findings": findings,

@@ -268,6 +268,11 @@ def main():
         help="Directory for structured reports. Defaults to this run's log directory.",
     )
     parser.add_argument(
+        "--typescript",
+        action="store_true",
+        help="Parse stdin as TypeScript. TypeScript files are detected automatically.",
+    )
+    parser.add_argument(
         "input_file",
         action="store",
         nargs="?",
@@ -345,7 +350,12 @@ def main():
                 )
             # analyze from stdin
             source = sys.stdin.read()
-            analyze_string(G, source, generate_graph=True)
+            analyze_string(
+                G,
+                source,
+                generate_graph=True,
+                typescript=args.typescript,
+            )
         else:
             G.entry_file_path = args.input_file
             if args.module:

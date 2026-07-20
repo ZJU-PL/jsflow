@@ -389,6 +389,12 @@ def setup_global_functions(G: Graph):
     clear_interval = G.add_blank_func_to_scope(
         "clearInterval", G.BASE_SCOPE, blank_func
     )
+    G.add_blank_func_to_scope(
+        "addEventListener", G.BASE_SCOPE, tainted_callback_func
+    )
+    G.add_blank_func_to_scope(
+        "queueMicrotask", G.BASE_SCOPE, tainted_callback_func
+    )
 
     require = G.add_blank_func_to_scope("require", G.BASE_SCOPE, opgen.handle_require)
     jseval = G.add_blank_func_to_scope("eval", G.BASE_SCOPE, opgen.handle_eval)
@@ -1660,6 +1666,31 @@ def func_calling_func(G: Graph, call_ast, extra, _, *args):
             G, filtered_objs, extra=extra, call_ast=call_ast
         )
         used_objs.update(results.obj_nodes)
+    add_contributes_to(G, used_objs, dummy_return_obj)
+    return NodeHandleResult(obj_nodes=[dummy_return_obj], used_objs=list(used_objs))
+
+
+def tainted_callback_func(G: Graph, call_ast, extra, _, *args):
+    """Invoke registered callbacks with synthetic attacker-controlled arguments."""
+    dummy_return_obj = G.add_obj_node(call_ast, value=wildcard)
+    used_objs = set()
+    for arg in args:
+        callback_functions = [
+            obj
+            for obj in arg.obj_nodes
+            if G.get_node_attr(obj).get("type") == "function"
+        ]
+        if not callback_functions:
+            continue
+        result, _ = opgen.call_function(
+            G,
+            callback_functions,
+            extra=extra,
+            call_ast=call_ast,
+            mark_fake_args=True,
+        )
+        used_objs.update(result.obj_nodes)
+        used_objs.update(result.used_objs)
     add_contributes_to(G, used_objs, dummy_return_obj)
     return NodeHandleResult(obj_nodes=[dummy_return_obj], used_objs=list(used_objs))
 

@@ -97,6 +97,9 @@ class Graph:
         self.entry_file_path = None  # for logging purpose only
         self.cur_file_path = None  # deprecated, use G.get_cur_file_path()
         self.file_contents = {}
+        self.frontend_diagnostics = []
+        self.frontend_compilers = []
+        self.arkts_projects = []
         self.log_dir = None  # log directory for this run
         self.logger = create_logger("graph_logger", output_type="file")
         self.mark_taint_vals = ["JSCPG_MARK_TAINT"]
@@ -557,6 +560,7 @@ class Graph:
                     if attr == "id:ID":
                         continue
                     self.set_node_attr(cur_id, (attr, val))
+                self._collect_frontend_metadata(row)
 
         with io.StringIO(rels) as fp:
             reader = csv.DictReader(fp, dialect=self.csv_dialect)
@@ -594,6 +598,7 @@ class Graph:
                     if attr == "id:ID":
                         continue
                     self.set_node_attr(cur_id, (attr, val))
+                self._collect_frontend_metadata(row)
 
         with open(rels_file_name) as fp:
             reader = csv.DictReader(fp, dialect=self.csv_dialect)
@@ -616,6 +621,33 @@ class Graph:
         self.toplevel_file_nodes = self.get_nodes_by_type_and_flag(
             "AST_TOPLEVEL", "TOPLEVEL_FILE"
         )
+
+    def _collect_frontend_metadata(self, row):
+        """Collect structured compiler information attached to filesystem rows."""
+        diagnostics = row.get("frontend_diagnostics")
+        if diagnostics:
+            try:
+                for diagnostic in json.loads(diagnostics):
+                    if diagnostic not in self.frontend_diagnostics:
+                        self.frontend_diagnostics.append(diagnostic)
+            except (TypeError, ValueError):
+                pass
+        compiler = row.get("typescript_compiler")
+        if compiler:
+            try:
+                compiler_record = json.loads(compiler)
+                if compiler_record not in self.frontend_compilers:
+                    self.frontend_compilers.append(compiler_record)
+            except (TypeError, ValueError):
+                pass
+        arkts_project = row.get("arkts_project")
+        if arkts_project:
+            try:
+                project_record = json.loads(arkts_project)
+                if project_record not in self.arkts_projects:
+                    self.arkts_projects.append(project_record)
+            except (TypeError, ValueError):
+                pass
 
     def export_to_CSV(self, nodes_file_name, rels_file_name, light=False):
         """

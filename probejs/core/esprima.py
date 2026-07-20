@@ -1,11 +1,11 @@
 """
-Helpers for invoking the bundled Esprima-based parsing scripts.
+Helpers for invoking the bundled JavaScript/TypeScript parsing scripts.
 
 This module is the Python bridge to the small Node.js utilities in
 `esprima-csv/`. `opgen` uses these helpers to:
 
-- parse JavaScript into the CSV/AST form consumed by probejs
-- resolve Node-style module entry points
+- parse JavaScript and TypeScript into the CSV/AST form consumed by probejs
+- resolve Node-style and tsconfig-aware module entry points
 - discover the transitive file set loaded by a `require(...)`
 
 The functions here intentionally stay thin: they delegate parsing and module
@@ -26,7 +26,7 @@ search_js_path = os.path.realpath(
 
 
 def esprima_parse(path="-", args=[], input=None, print_func=print):
-    """Run the Esprima CSV parser and return its stdout payload.
+    """Run the JavaScript/TypeScript CSV parser and return its stdout payload.
 
     Args:
         path: File path to parse, or `-` to read source from stdin.
@@ -49,6 +49,10 @@ def esprima_parse(path="-", args=[], input=None, print_func=print):
     )
     stdout, stderr = proc.communicate(input)
     print_func(stderr)
+    if isinstance(proc.returncode, int) and proc.returncode != 0:
+        raise RuntimeError(
+            "JavaScript/TypeScript parsing failed for {}:\n{}".format(path, stderr.strip())
+        )
     return stdout
 
 

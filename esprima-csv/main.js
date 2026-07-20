@@ -12,6 +12,7 @@ const os = require('os');
 const ansicolor = require('ansicolor').nice;
 const Readable = require('stream').Readable;
 const program = require('commander');
+const typescript = require('./typescript.js');
 program
     .version('0.12.2')
     .usage('<filename or package name> [options]')
@@ -30,7 +31,8 @@ program
     .option('--style <php/c>', 'Output style. You can choose from "php" and "c".', 'php')
     .option('--delimiter <comma/tab>', 'Delimiter of the output. ' +
         'You can choose from "comma" and "tab".', 'tab')
-    .option('-e, --expression', 'Indicate that the input is an expression');
+    .option('-e, --expression', 'Indicate that the input is an expression')
+    .option('--typescript', 'Parse stdin as TypeScript');
 
 function invalidArguments() {
     console.error('Invalid arguments: %s\nSee --help for a list of available commands.', program.args.join(' '));
@@ -75,10 +77,13 @@ if (program.start !== undefined){
 
 var dirname = program.input;
 var filename = "";
+var reportedFilename = "";
 
 var requiredModules = new Set(),
     analyzedModules = [];
 const builtInModules = require('module').builtinModules;
+const reportedTypeScriptDiagnostics = new Set();
+var currentTypeScriptInfo = null;
 
 var stdoutMode = false;
 if (program.output ==='-' || (program.input === '-' && program.output === undefined)){
@@ -87,7 +92,7 @@ if (program.output ==='-' || (program.input === '-' && program.output === undefi
 
 // write csv headers
 
-var csvHead1PHP = `id:ID\tlabels:label\ttype\tflags:string[]\tlineno:int\tcode\tchildnum:int\tfuncid:int\tclassname\tnamespace\tendlineno:int\tname\tdoccomment\n`.replace(/\t/g, delimiter);
+var csvHead1PHP = `id:ID\tlabels:label\ttype\tflags:string[]\tlineno:int\tcode\tchildnum:int\tfuncid:int\tclassname\tnamespace\tendlineno:int\tname\tdoccomment\tgenerated:bool\tgenerated_location\ttypescript_project\ttypescript_metadata\ttypescript_callback_args\ttypescript_callback_parameters\ttypescript_callback_properties\ttypescript_promise_like:bool\ttypescript_return_type\tfrontend_diagnostics\ttypescript_compiler\tarkts_project\n`.replace(/\t/g, delimiter);
 var csvHead1C = `command\tkey\ttype\tcode\tlocation\tfunctionId\tchildNum\tisCFGNode\toperator\tbaseType\tcompleteType\tidentifier\n`.replace(/\t/g, delimiter);
 var csvHead2PHP = `start:START_ID\tend:END_ID\ttype:TYPE\n`.replace(/\t/g, delimiter);
 var csvHead2C = `start\tend\ttype\tvar\n`.replace(/\t/g, delimiter);
@@ -205,7 +210,7 @@ function dfs(currentNode, currentId, parentId, childNum, currentFunctionId, extr
                 nodes[vCFGFuncEntryId] = {
                     label: 'Artificial',
                     type: 'CFG_FUNC_ENTRY',
-                    name: filename,
+                    name: reportedFilename || filename,
                     funcId: currentFunctionId
                 };
                 console.log(`Make ${nodeIdCounter.toString().green.bright} ${'CFG_FUNC_ENTRY'.lightRed.bright} Artificial node`);
@@ -216,7 +221,7 @@ function dfs(currentNode, currentId, parentId, childNum, currentFunctionId, extr
                 nodes[vCFGFuncExitId] = {
                     label: 'Artificial',
                     type: 'CFG_FUNC_EXIT',
-                    name: filename,
+                    name: reportedFilename || filename,
                     funcId: currentFunctionId
                 };
                 console.log(`Make ${nodeIdCounter.toString().green.bright} ${'CFG_FUNC_EXIT'.lightRed.bright} Artificial node`);
@@ -251,7 +256,7 @@ function dfs(currentNode, currentId, parentId, childNum, currentFunctionId, extr
                 type: currentNode.type,
                 phptype: 'AST_TOPLEVEL',
                 phpflag: 'TOPLEVEL_FILE',
-                name: filename,
+                name: reportedFilename || filename,
                 lineLocStart: currentNode.loc ? currentNode.loc.start.line : null,
                 // childNum: childNum,
                 lineLocEnd: currentNode.loc ? currentNode.loc.end.line : null,
@@ -3002,6 +3007,23 @@ function dfs(currentNode, currentId, parentId, childNum, currentFunctionId, extr
             };
             break;
     }
+    if (nodes[currentId] && currentNode.probejsGeneratedLoc) {
+        const generatedLoc = currentNode.probejsGeneratedLoc;
+        nodes[currentId].generated = Boolean(currentNode.probejsGenerated);
+        nodes[currentId].generatedLocation = [
+            generatedLoc.start.line,
+            generatedLoc.start.column,
+            generatedLoc.end.line,
+            generatedLoc.end.column
+        ].join(':');
+    }
+    if (nodes[currentId] && currentNode.probejsCallbackArguments) {
+        nodes[currentId].typescriptCallbackArguments = currentNode.probejsCallbackArguments.join(',');
+        nodes[currentId].typescriptCallbackParameters = currentNode.probejsCallbackParameters;
+        nodes[currentId].typescriptCallbackProperties = currentNode.probejsCallbackProperties;
+        nodes[currentId].typescriptPromiseLike = Boolean(currentNode.probejsPromiseLike);
+        nodes[currentId].typescriptReturnType = currentNode.probejsReturnType;
+    }
 };
 
 function makeVirtualNodeForBody(body, parentNode, childNum, currentFunctionId, ctype){
@@ -3063,9 +3085,13 @@ function walkDir(dir, parentNodeId, callback) {
         let dirPath = path.join(dir, f);
         let isDirectory = fs.statSync(dirPath).isDirectory();
         if (isDirectory) {
-            walkDir(dirPath, currentId, callback);
+            if (!['node_modules', '.git', 'dist', 'build', 'coverage'].includes(f)) {
+                walkDir(dirPath, currentId, callback);
+            }
         } else {
-            if (f.endsWith(".js")) callback(path.join(dir, f), currentId);
+            if (/\.(?:[cm]?js|[cm]?ts|tsx|ets)$/i.test(f) && !/\.d\.[cm]?ts$/i.test(f)) {
+                callback(path.join(dir, f), currentId);
+            }
         }
     });
 };
@@ -3073,6 +3099,7 @@ function walkDir(dir, parentNodeId, callback) {
 function analyze(filePath, parentNodeId) {
     // read the file
     filename = filePath || 'stdin';
+    reportedFilename = filename;
     if (analyzedModules.includes(filename)){
         console.log(("Skipping " + filename).white.inverse);
         return;
@@ -3085,6 +3112,27 @@ function analyze(filePath, parentNodeId) {
     sourceCode = fs.readFileSync(filePath, 'utf8');
     sourceCode = sourceCode.replace(/^#!.*\n/, '\n');
     sourceCode = sourceCode.replace(/\r\n/g, '\n');
+    let sourceMap = null;
+    currentTypeScriptInfo = null;
+    if (program.typescript || typescript.isTypeScriptFile(filename)) {
+        const transpiled = typescript.projectCompiler.compileFile(filename, sourceCode);
+        for (const diagnostic of transpiled.diagnostics) {
+            const diagnosticMessage = typescript.diagnosticText(diagnostic);
+            if (!reportedTypeScriptDiagnostics.has(diagnosticMessage)) {
+                console.log(diagnosticMessage.lightRed);
+                reportedTypeScriptDiagnostics.add(diagnosticMessage);
+            }
+        }
+        sourceCode = transpiled.code;
+        sourceMap = transpiled.sourceMap;
+        currentTypeScriptInfo = transpiled;
+    } else {
+        const existingMap = typescript.loadJavaScriptSourceMap(filename, sourceCode);
+        if (existingMap) {
+            sourceMap = existingMap.sourceMap;
+            reportedFilename = existingMap.originalFile || filename;
+        }
+    }
     // initialize
     if (!program.expression){
         let currentId = nodeIdCounter;
@@ -3095,7 +3143,12 @@ function analyze(filePath, parentNodeId) {
             nodes[currentId] = {
                 label: 'Filesystem',
                 type: 'File',
-                name: filename
+                name: reportedFilename || filename,
+                typescriptProject: currentTypeScriptInfo && currentTypeScriptInfo.projectConfig,
+                typescriptMetadata: currentTypeScriptInfo && currentTypeScriptInfo.declarationMetadata,
+                frontendDiagnostics: currentTypeScriptInfo && currentTypeScriptInfo.diagnostics,
+                typescriptCompiler: currentTypeScriptInfo && currentTypeScriptInfo.compiler,
+                arktsProject: currentTypeScriptInfo && currentTypeScriptInfo.arktsProject
             };
         } else if (outputStyle == 'c') {
             if (parentNodeId !== null) {
@@ -3104,7 +3157,12 @@ function analyze(filePath, parentNodeId) {
             nodes[currentId] = {
                 label: 'Filesystem',
                 type: 'File',
-                name: filename
+                name: reportedFilename || filename,
+                typescriptProject: currentTypeScriptInfo && currentTypeScriptInfo.projectConfig,
+                typescriptMetadata: currentTypeScriptInfo && currentTypeScriptInfo.declarationMetadata,
+                frontendDiagnostics: currentTypeScriptInfo && currentTypeScriptInfo.diagnostics,
+                typescriptCompiler: currentTypeScriptInfo && currentTypeScriptInfo.compiler,
+                arktsProject: currentTypeScriptInfo && currentTypeScriptInfo.arktsProject
             };
         }
         nodeIdCounter++;
@@ -3117,6 +3175,8 @@ function analyze(filePath, parentNodeId) {
             tolerant: true,
             attachComment: true
         });
+        typescript.remapAstLocations(root, sourceMap,
+            currentTypeScriptInfo && currentTypeScriptInfo.declarationMetadata);
         if (root.errors && root.errors.length > 0){
             console.log('Errors occurred when generating AST:'.lightRed.inverse);
             for (err of root.errors){
@@ -3125,6 +3185,8 @@ function analyze(filePath, parentNodeId) {
         }
     } catch (e) {
         console.log(e);
+        process.exitCode = 1;
+        return;
     }
     if (!stdoutMode){
         console.dir(root);
@@ -3167,7 +3229,17 @@ function analyze(filePath, parentNodeId) {
             let location = u.lineLocStart ? [u.lineLocStart, u.colLocStart || '', u.lineLocEnd || u.lineLocStart, u.colLocEnd || ''].join(':') : '';
             nodesStream.push([i, label, u.phptype || u.type, u.phpflag || '',
                 u.lineLocStart !== null ? u.lineLocStart : '', quote(u.code), childNum, u.funcId || '',
-                '', location, u.lineLocEnd !== null ? u.lineLocEnd : '', u.name || '', quote(u.comment, 1)
+                '', location, u.lineLocEnd !== null ? u.lineLocEnd : '', u.name || '', quote(u.comment, 1),
+                u.generated === undefined ? '' : u.generated, u.generatedLocation || '',
+                quote(u.typescriptProject), quote(u.typescriptMetadata ? JSON.stringify(u.typescriptMetadata) : ''),
+                u.typescriptCallbackArguments || '',
+                quote(u.typescriptCallbackParameters ? JSON.stringify(u.typescriptCallbackParameters) : ''),
+                quote(u.typescriptCallbackProperties ? JSON.stringify(u.typescriptCallbackProperties) : ''),
+                u.typescriptPromiseLike === undefined ? '' : u.typescriptPromiseLike,
+                quote(u.typescriptReturnType),
+                quote(u.frontendDiagnostics ? JSON.stringify(u.frontendDiagnostics) : ''),
+                quote(u.typescriptCompiler ? JSON.stringify(u.typescriptCompiler) : ''),
+                quote(u.arktsProject ? JSON.stringify(u.arktsProject) : '')
             ].join(delimiter) + '\n');
         } else if (outputStyle == 'c') {
             if (i == 0) continue;

@@ -5660,6 +5660,68 @@ def handle_call(G, ast_node, extra):
         stmt_id=stmt_id,
         func_name=func_name,
     )
+    callback_indexes = G.get_node_attr(ast_node).get("typescript_callback_args")
+    if callback_indexes:
+        for raw_index in callback_indexes.split(","):
+            try:
+                callback_index = int(raw_index)
+                callback_arg = handled_args[callback_index]
+            except (ValueError, IndexError):
+                continue
+            callback_functions = [
+                obj
+                for obj in callback_arg.obj_nodes
+                if G.get_node_attr(obj).get("type") == "function"
+            ]
+            if callback_functions:
+                callback_result, _ = call_function(
+                    G,
+                    callback_functions,
+                    extra=extra,
+                    call_ast=ast_node,
+                    func_name=f"{func_name or '{anonymous}'} callback",
+                    mark_fake_args=True,
+                )
+                returned_result.used_objs.extend(callback_result.used_objs)
+    callback_properties = G.get_node_attr(ast_node).get(
+        "typescript_callback_properties"
+    )
+    if callback_properties:
+        try:
+            callback_property_records = json.loads(callback_properties)
+        except (TypeError, ValueError):
+            callback_property_records = []
+        for record in callback_property_records:
+            try:
+                callback_arg = handled_args[int(record["argument"])]
+            except (KeyError, TypeError, ValueError, IndexError):
+                continue
+            for property_record in record.get("properties", []):
+                property_name = property_record.get("name")
+                if not property_name:
+                    continue
+                callback_functions = []
+                for parent_obj in callback_arg.obj_nodes:
+                    name_node = G.get_prop_name_node(property_name, parent_obj)
+                    if name_node is None:
+                        continue
+                    callback_functions.extend(
+                        obj
+                        for obj in G.get_objs_by_name_node(
+                            name_node, branches=extra.branches
+                        )
+                        if G.get_node_attr(obj).get("type") == "function"
+                    )
+                if callback_functions:
+                    callback_result, _ = call_function(
+                        G,
+                        list(set(callback_functions)),
+                        extra=extra,
+                        call_ast=ast_node,
+                        func_name=f"{func_name or '{anonymous}'}.{property_name}",
+                        mark_fake_args=True,
+                    )
+                    returned_result.used_objs.extend(callback_result.used_objs)
     if is_new:
         returned_result.obj_nodes = created_objs
     # don't build control flow here
@@ -6246,16 +6308,16 @@ def generate_obj_graph(G: Graph, entry_nodeid):
 
 def analyze_files(G, path, start_node_id=0, check_signatures=[]):
     """
-    Analyze JavaScript files and generate object property graph.
+    Analyze JavaScript or TypeScript files and generate an object property graph.
 
-    This is the main entry point for file analysis. It parses JavaScript files
-    using Esprima, imports the AST into the graph, and then performs symbolic
-    execution to build the object property graph. Supports two-pass analysis
-    for improved precision.
+    This is the main entry point for file analysis. JavaScript is parsed with
+    Esprima; TypeScript is lowered to compatible JavaScript with source-map
+    locations before AST import. The imported graph is then symbolically
+    executed to build the object property graph.
 
     Args:
         G (Graph): The graph object to populate with analysis results
-        path (str): Path to JavaScript file or directory to analyze
+        path (str): Path to a JavaScript/TypeScript file or directory to analyze
         start_node_id (int, optional): Starting node ID for AST import.
             Defaults to 0.
         check_signatures (list, optional): List of function signatures to check
@@ -6333,7 +6395,12 @@ def analyze_files(G, path, start_node_id=0, check_signatures=[]):
 
 
 def analyze_string(
-    G, source_code, start_node_id=None, generate_graph=False, expression=False
+    G,
+    source_code,
+    start_node_id=None,
+    generate_graph=False,
+    expression=False,
+    typescript=False,
 ):
     """
     Analyze JavaScript source code from a string and optionally generate object graph.
@@ -6360,6 +6427,8 @@ def analyze_string(
             Defaults to False.
         expression (bool, optional): If True, parse as an expression rather than
             a statement. Defaults to False.
+        typescript (bool, optional): If True, parse string input as TypeScript.
+            File-based analysis detects TypeScript from its extension.
 
     Returns:
         None: Results are stored in the graph object G.
@@ -6386,6 +6455,8 @@ def analyze_string(
     args = ["-n", str(start_node_id), "-o", "-"]
     if expression:
         args = ["-e"] + args
+    if typescript:
+        args = ["--typescript"] + args
     result = esprima_parse("-", args, input=source_code, print_func=logger.info)
     G.import_from_string(result)
     if generate_graph:

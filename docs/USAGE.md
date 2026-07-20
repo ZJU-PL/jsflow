@@ -24,6 +24,30 @@ python -m probejs -q -t xss input.js
 python -m probejs -p input.js
 ```
 
+### TypeScript
+
+TypeScript files are detected from their extension and use the same commands as JavaScript:
+
+```bash
+python -m probejs src/index.ts
+python -m probejs --json -t os_command src/index.ts
+python -m probejs ./src
+```
+
+Supported source extensions are `.ts`, `.tsx`, `.mts`, `.cts`, and ArkTS `.ets`. Source is compiled to CommonJS, so the downstream graph builder remains the same JavaScript pipeline. The nearest `tsconfig.json` is compiled as a project; project references, `baseUrl`, `paths`, package `exports`/`imports`, and npm/pnpm-style workspaces are resolved. Findings are mapped back to original source positions through source maps.
+
+ArkTS `.ets` handling normalizes the common runtime-relevant subset: `struct` components, standard ArkUI decorators, declarative component blocks, and `@Entry` `build()` bodies. Vendor-only syntax outside that subset should be compiled to CommonJS with the HarmonyOS toolchain first and the emitted JavaScript supplied to probejs.
+
+For TypeScript read from standard input, pass `--typescript` explicitly because stdin has no filename:
+
+```bash
+printf 'const input: string = process.argv[2];' | python -m probejs --typescript -
+```
+
+Type-only constructs are erased from the analyzed program. Declaration signatures are retained as compact metadata for callback registration and promise-returning APIs, but probejs remains a runtime-oriented flow analysis rather than a TypeScript type checker.
+
+When JSON reporting is enabled, `frontend.compilers` records the selected TypeScript compiler and `frontend.diagnostics` contains structured syntax, configuration, module-resolution, and semantic diagnostics. Diagnostics do not prevent analysis-oriented CommonJS emission. HarmonyOS project manifests discovered for `.ets` inputs are reported under `frontend.arkts_projects`.
+
 ### Command Line Options
 
 - `-p, --print`: Print logs to console instead of file
@@ -43,6 +67,7 @@ python -m probejs -p input.js
 - `-X, --solver, --path-feasibility`: Enable heuristic Z3 path feasibility check (experimental; does not generate runnable exploits)
 - `--json`: Write a structured JSON report to the run log directory
 - `--report-dir`: Override the output directory for structured reports
+- `--typescript`: Parse standard input as TypeScript (file extensions are detected automatically)
 - `-1, --coarse-only`: Coarse analysis only
 
 ## Programmatic Usage

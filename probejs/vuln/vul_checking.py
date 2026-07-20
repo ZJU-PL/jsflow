@@ -40,15 +40,20 @@ def get_path_text(G, path, caller):
         except:
             pass
         if content is not None:
-            for l in range(start_lineno, end_lineno + 1):
+            # AST locations are one-based, while the source buffer is zero-based.
+            # Generated CommonJS scaffolding can also span beyond the last original
+            # TypeScript line, so keep reporting bounded to the owning source file.
+            start_index = max(start_lineno - 1, 0)
+            end_index = min(max(end_lineno, start_lineno), len(content))
+            for l in range(start_index, end_index):
                 if "function" in content[l]:
                     content = (
-                        "".join(content[start_lineno : l + 1]).rstrip()
+                        "".join(content[start_index : l + 1]).rstrip()
                         + " ... (omitted)\n"
                     )
                     break
             if type(content) is list:
-                content = "".join(content[start_lineno : end_lineno + 1])
+                content = "".join(content[start_index:end_index])
             cur_path_str2 += "{}\t{}".format(start_lineno, content)
     cur_path_str1 += G.get_node_attr(caller).get("lineno:int", "?")
     G.logger.debug(cur_path_str1)
