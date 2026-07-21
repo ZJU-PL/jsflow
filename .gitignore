@@ -1,5 +1,6 @@
 bench_results.json
 *egg-info*
+dist/
 docs/build/
 .sisyphus
 .codex
@@ -19,7 +20,7 @@ logs
 /.env
 /.venv
 logs/*
-# esprima-csv
+# esprima-csv / probejs/_parser
 node_modules/
 /node_modules/
 /esprima-joern/*.csv

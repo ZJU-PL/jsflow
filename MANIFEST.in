@@ -1,0 +1,5 @@
+# Include the JavaScript parser sources (not node_modules — those are installed
+# lazily at runtime via probejs/_setup.py).
+recursive-include probejs/_parser *.js *.json *.sh *.py
+exclude probejs/_parser/node_modules
+recursive-exclude probejs/_parser/node_modules *

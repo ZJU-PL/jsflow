@@ -28,6 +28,12 @@ dev = [
 
 [project.scripts]
 probejs = "probejs.__main__:main"
+probejs-setup = "probejs._setup:main"
 
 [tool.setuptools.packages.find]
 include = ["probejs*"]
+
+[tool.setuptools.package-data]
+# Bundle the JavaScript/TypeScript parser sources (not node_modules — those
+# are installed lazily at runtime via ``probejs/_setup.py``).
+probejs = ["_parser/*.js", "_parser/*.json", "_parser/*.sh", "_parser/*.py"]
