@@ -26,61 +26,45 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture infor
 
 ## Installation
 
-### Via pyproject.toml (Recommended)
-
-```bash
-pip install -e .
-```
-
-This installs the package in editable mode with all dependencies defined in `pyproject.toml`.
-
 ### System Requirements
 
-- **Node.js and npm**: Required for JavaScript AST parsing dependencies
-- **Python 3**: Required for the core analysis engine
-- **pip**: Python package manager
+- **Node.js and npm**: Required for JavaScript/TypeScript AST parsing (automated setup)
+- **Python 3.8+**: Required for the core analysis engine
 
-### Installation Steps
+### From PyPI (Recommended)
 
-1. **Clone the repository** (if not already done):
-   ```bash
-   git clone <repository-url>
-   cd probejs
-   ```
+```bash
+pip install probejs
+```
 
-2. **Install npm dependencies** (for JavaScript and TypeScript parsing):
-   ```bash
-   cd esprima-csv && npm install && cd ..
-   ```
-   
-   This installs:
-   - `esprima` (^4.0.1): JavaScript parser
-   - `typescript` (^5.9): TypeScript/TSX lowering and project configuration support
-   - `source-map` (^0.6.1): Original TypeScript source location mapping
-   - `commander` (^3.0.2): Command-line interface utilities
-   - `ansicolor` (^1.1.84): Terminal color output
+On first run, the tool will automatically install its JavaScript dependencies
+into `~/.cache/probejs/parser/` via `npm install`. You can also trigger this
+step manually ahead of time:
 
-3. **Set up Python virtual environment** (recommended):
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+```bash
+probejs-setup                # or: python -m probejs setup
+```
 
-4. **Install Python dependencies**:
-   ```bash
-   pip install -e .
-   ```
+### From Source (Development)
 
-Alternatively, you can use the provided installation script:
+```bash
+git clone <repository-url>
+cd probejs
+
+# Install Python package in editable mode
+pip install -e .
+
+# Install JavaScript parser dependencies
+cd probejs/_parser && npm install && cd ../..
+
+# Verify
+python -m probejs input.js
+```
+
+Or use the provided installation script:
 ```bash
 ./install.sh
 ```
-
-This script will automatically:
-- Install npm dependencies in `esprima-csv/`
-- Create a Python virtual environment if it doesn't exist
-- Activate the virtual environment
-- Install all Python dependencies
 
 ### Python Dependencies
 
@@ -89,12 +73,16 @@ This script will automatically:
 - `sty` (~=1.0.0rc0): Terminal styling and formatting
 - `func_timeout` (~=4.3.5): Function timeout handling
 - `tqdm` (~=4.48.2): Progress bars for long-running operations
-- `setuptools`: Package building utilities
 
-### Node.js Dependencies
+### JavaScript Dependencies
+
+The JavaScript parser scripts are bundled with the Python package and installed
+lazily via npm on first use (or via ``probejs-setup``). They include:
 
 - `esprima` (^4.0.1): JavaScript parser for AST generation
-- `commander` (^3.0.2): Command-line interface framework
+- `typescript` (^5.9): TypeScript/TSX lowering and project configuration support
+- `source-map` (^0.6.1): Original TypeScript source location mapping
+- `commander` (^3.0.2): Command-line interface utilities
 - `ansicolor` (^1.1.84): Terminal color formatting
 
 ## Quick Start
