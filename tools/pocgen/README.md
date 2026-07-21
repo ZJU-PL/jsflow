@@ -2,7 +2,7 @@
 
 > **Disclaimer**: This is an **experimental** utility separate from probejs's core static analysis. It relies on external LLM-based coding agents (Codex, Claude, etc.) and does not perform automated exploitation.
 
-It is separate from `skills/probejs-poc-generation/`:
+It is separate from `tools/pocgen/skills/probejs-poc-generation/`:
 
 - the skill is the interactive/manual workflow,
 - `pocgen` is the reproducible Python runner that can call CLI coding agents,
@@ -11,7 +11,7 @@ It is separate from `skills/probejs-poc-generation/`:
 ## Basic Usage
 
 ```bash
-python pocgen/generate.py \
+python tools/pocgen/generate.py \
   --report logs/<timestamp>/report.json \
   --finding 0 \
   --agent codex \
@@ -25,7 +25,7 @@ model flags vary by CLI version; pass backend-specific flags with repeatable
 Codex and OpenCode these extra args are inserted before the generated prompt:
 
 ```bash
-python pocgen/generate.py \
+python tools/pocgen/generate.py \
   --report logs/<timestamp>/report.json \
   --finding 0 \
   --agent codex \
@@ -38,7 +38,7 @@ For a dry run that writes the compact packet and prompts without calling an
 agent:
 
 ```bash
-python pocgen/generate.py \
+python tools/pocgen/generate.py \
   --report logs/<timestamp>/report.json \
   --finding 0 \
   --output /tmp/probejs-pocgen-case \
@@ -50,7 +50,7 @@ By default, validation runs the first generated `poc.js`, `poc.cjs`, or
 will run the modified template. To pin an exact command, pass:
 
 ```bash
-python pocgen/generate.py \
+python tools/pocgen/generate.py \
   --report logs/<timestamp>/report.json \
   --finding 0 \
   --output evaluation/pocs/<case-id>/ \

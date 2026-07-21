@@ -22,7 +22,7 @@ probejs is a JavaScript static analysis framework that:
 
 ## Architecture
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture information.
+See [docs/source/architecture.rst](docs/source/architecture.rst) for detailed architecture information.
 
 ## Installation
 
@@ -116,7 +116,7 @@ When `--json` is passed, the JSON report is written to the run log directory as:
 - `report.json`: structured bug report with source snippets, path diagnostics, and trace rule evaluations
 - `report.schema.json`: schema for the report format
 
-See [docs/USAGE.md](docs/USAGE.md) for detailed usage instructions, examples, and advanced configuration.
+See [docs/source/user_guide/usage.rst](docs/source/user_guide/usage.rst) for detailed usage instructions, examples, and advanced configuration.
 
 ### TypeScript support
 
@@ -138,13 +138,13 @@ TypeScript files (`.ts`, `.tsx`, `.mts`, and `.cts`) and ArkTS `.ets` files are 
 
 Declaration files (`.d.ts`, `.d.mts`, and `.d.cts`) are not emitted as runtime files, but their signatures inform callback and promise metadata. Common generated/dependency directories are skipped during directory analysis. Type errors do not prevent emission because probejs analyzes runtime flows.
 
-> **Experimental: PoC generation utilities.** The directories `pocgen/` and `skills/probejs-poc-generation/` contain experimental utilities that consume `report.json` to assist with proof-of-concept generation. These are **separate from the core analysis pipeline** and currently rely on LLM-based coding agents (e.g., Codex, Claude) rather than automated symbolic reasoning.
+> **Experimental: PoC generation utilities.** The directory `tools/pocgen/` contains experimental utilities that consume `report.json` to assist with proof-of-concept generation. Its `skills/` subdirectory (`tools/pocgen/skills/probejs-poc-generation/`) provides an interactive agent workflow. These are **separate from the core analysis pipeline** and currently rely on LLM-based coding agents (e.g., Codex, Claude) rather than automated symbolic reasoning.
 
 ## Documentation
 
-- **[Architecture](docs/ARCHITECTURE.md)**: Detailed architecture, how it works, and output format
-- **[Usage Guide](docs/USAGE.md)**: Command-line options, canonical JSON reporting, programmatic usage, and examples
-- **[Vulnerability Types](docs/VULNERABILITIES.md)**: Detailed information about each vulnerability type with examples
-- **[Troubleshooting](docs/TROUBLESHOOTING.md)**: Limitations, common issues, debugging tips, and references
-- **[PoC Generation Workflows](docs/POC_GENERATION.md)**: Difference between the interactive skill and automated runner approaches
-- **[PoC Skill](skills/probejs-poc-generation/SKILL.md)**: Agent skill for turning `report.json` findings into runnable PoCs
+- **[Architecture](docs/source/architecture.rst)**: Detailed architecture, how it works, and output format
+- **[Usage Guide](docs/source/user_guide/usage.rst)**: Command-line options, canonical JSON reporting, programmatic usage, and examples
+- **[Vulnerability Types](docs/source/user_guide/vulnerability_detection.rst)**: Detailed information about each vulnerability type with examples
+- **[Troubleshooting](docs/source/user_guide/troubleshooting.rst)**: Limitations, common issues, debugging tips, and references
+- **[PoC Generation Workflows](docs/source/user_guide/poc_generation.rst)**: Difference between the interactive skill and automated runner approaches
+- **[PoC Skill](tools/pocgen/skills/probejs-poc-generation/SKILL.md)**: Agent skill for turning `report.json` findings into runnable PoCs

@@ -11,11 +11,11 @@ from pathlib import Path
 from typing import Any
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from pocgen.agent_runner import AgentRunError, run_agent, supported_agents
-from pocgen.evidence import dumps_json, evidence_for_stage, render_json
-from pocgen.packet import (
+from tools.pocgen.agent_runner import AgentRunError, run_agent, supported_agents
+from tools.pocgen.evidence import dumps_json, evidence_for_stage, render_json
+from tools.pocgen.packet import (
     PacketError,
     evidence_pointer,
     extract_agent_packet,
@@ -24,8 +24,8 @@ from pocgen.packet import (
     select_finding,
     target_cwd,
 )
-from pocgen.prompts import render
-from pocgen.validate import validate_output
+from tools.pocgen.prompts import render
+from tools.pocgen.validate import validate_output
 
 
 def build_prompt(

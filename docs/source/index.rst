@@ -8,10 +8,17 @@ probejs is a comprehensive static analysis framework for JavaScript that perform
    :caption: User Guide
 
    user_guide/installation
-   user_guide/quickstart
+   user_guide/usage
    user_guide/tutorials
    user_guide/vulnerability_detection
    user_guide/troubleshooting
+   user_guide/poc_generation
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Architecture
+
+   architecture
 
 .. toctree::
    :maxdepth: 2

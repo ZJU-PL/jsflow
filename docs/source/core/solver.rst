@@ -1,334 +1,157 @@
-Constraint Solver
-=================
-
-The ``solver`` module provides constraint solving capabilities using Z3 for path analysis and exploit generation in probejs. It builds constraint systems from operations along vulnerable paths and attempts to find concrete input values that trigger vulnerabilities.
+Constraint Solving in probejs
+=============================
 
 Overview
 --------
 
-The constraint solver is responsible for:
+probejs uses **Z3** (an SMT solver) to solve constraints and determine if vulnerable paths are feasible, and to generate concrete exploit payloads. The system models string concatenations and numeric operations along data flow paths.
 
-* Building constraint systems from data flow operations
-* Using Z3 to determine path feasibility
-* Generating concrete exploit payloads
-* Solving arithmetic, string, and boolean constraints
+Architecture
+------------
 
-Key Components
---------------
+Two implementations exist:
 
-* **ConstraintBuilder**: Builds constraint systems from graph operations
-* **Z3Solver**: Interface to Z3 solver for constraint solving
-* **ExploitGenerator**: Generates concrete input values from solutions
-* **ConstraintTypes**: Different types of constraints supported
+1. **Legacy Solver** (``probejs/core/solver.py``): Direct Z3 constraint building from graph edges
+2. **New Constraint Engine** (``probejs/constraints/engine.py``): Expression IR-based approach
 
-Constraint Types
-----------------
+The legacy solver (``solve2()``) is currently the active implementation.
 
-The solver handles several types of constraints:
+Path-Sensitive Engine
+---------------------
 
-**Arithmetic Constraints:**
-* Addition: ``x + y = result``
-* Subtraction: ``x - y = result``
-* Multiplication: ``x * y = result``
-* Division: ``x / y = result``
+New APIs: ``build_path_constraints``, ``encode_path_constraint``, ``solve_path_sensitive``
 
-**String Constraints:**
-* Concatenation: ``str1 + str2 = result``
-* Substring: ``result.contains(substring)``
-* Length: ``len(string) = length_value``
-* Equality: ``string1 == string2``
+- Tracks path conditions alongside value expressions (branch predicates, sanitizers, edge guards)
+- Preserves choices per-branch instead of collapsing them
+- Use when you have a concrete source→sink path and want full path conditions encoded before Z3 solving
 
-**Boolean Constraints:**
-* Logical AND: ``cond1 AND cond2 = result``
-* Logical OR: ``cond1 OR cond2 = result``
-* Negation: ``NOT cond = result``
-* Equality: ``bool1 == bool2``
+Key Concepts
+------------
 
-Constraint Building
--------------------
+CONTRIBUTES_TO Edges
+~~~~~~~~~~~~~~~~~~~~
 
-Constraints are built from operations along vulnerable paths:
+Tracks value flow through operations. Each edge has an ``opt`` attribute: ``(operation_type, group_id, operand_index)``.
 
-.. code-block:: python
+Example: ``result = "prefix" + userInput + "suffix"`` creates three edges with ``("string_concat", "group1", 0/1/2)``.
 
-   from probejs.core.solver import ConstraintBuilder
+Mixed Symbols
+~~~~~~~~~~~~~
 
-   # Create constraint builder
-   builder = ConstraintBuilder()
+JavaScript values can be strings or numbers. ``MixedSymbol`` objects hold both:
 
-   # Add operations from vulnerable path
-   builder.add_operation({
-       'type': 'VAR_ASSIGN',
-       'args': ['userInput', 'source_value']
-   })
+- String view: ``z3.String(f"s{node_id}")``
+- Numeric view: ``z3.Real(f"n{node_id}")``
 
-   builder.add_operation({
-       'type': 'CONCAT',
-       'args': ['prefix', 'userInput', 'command']
-   })
+Constraint Building Process
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-   # Build constraint system
-   constraints = builder.build_constraints()
+1. Start from sink objects (vulnerable function parameters)
+2. Backward traversal: Follow ``CONTRIBUTES_TO`` edges to find sources
+3. Group operations by type and group ID
+4. Build Z3 constraints: ``string_concat`` → ``z3.Concat(...)``, ``numeric_add`` → ``z3.Sum(...)``
+5. Add literal and security constraints
+6. Solve with Z3 (2-second timeout)
 
-Example Constraint Generation
------------------------------
-
-**String Concatenation:**
-.. code-block:: python
-
-   # Input: var cmd = "ping " + userInput;
-   constraint = {
-       'type': 'string_concat',
-       'variables': ['cmd', 'userInput'],
-       'constants': ['ping '],
-       'relationship': 'cmd = "ping " + userInput'
-   }
-
-**Arithmetic Operation:**
-.. code-block:: python
-
-   # Input: var result = base + userInput;
-   constraint = {
-       'type': 'arithmetic_add',
-       'variables': ['result', 'userInput'],
-       'constants': ['base'],
-       'relationship': 'result = base + userInput'
-   }
-
-**Conditional Check:**
-.. code-block:: python
-
-   # Input: if (userInput.length > 0) { ... }
-   constraint = {
-       'type': 'string_length',
-       'variables': ['userInput'],
-       'relationship': 'len(userInput) > 0'
-   }
-
-Z3 Integration
----------------
-
-The solver uses Z3 through a Python interface:
+Legacy Solver (``solve2``)
+--------------------------
 
 .. code-block:: python
 
-   from probejs.core.solver import Z3Solver
-   import z3
+   def solve2(G: Graph, final_objs, initial_objs=None, contains=True):
+       """
+       Solve constraints to determine if vulnerable paths are feasible.
 
-   # Create solver
-   solver = Z3Solver()
+       Args:
+           G: Graph containing analysis results
+           final_objs: List of sink object node IDs
+           initial_objs: Optional list of source object node IDs
+           contains: If True, use substring match for sink values; if False, use equality
 
-   # Create Z3 variables
-   user_input = z3.String('user_input')
-   cmd = z3.String('cmd')
+       Yields:
+           (assertions, results) tuples where results is "failed" if unsat,
+           or dict of variable→value mappings (exploit)
+       """
 
-   # Add constraints
-   solver.add_constraint(cmd == z3.Concat(z3.StringVal("ping "), user_input))
+**Process:**
 
-   # Solve
-   if solver.check():
-       model = solver.get_model()
-       exploit = solver.generate_exploit(model)
+1. Creates ``MixedSymbol`` objects for each node
+2. Traverses backward from sinks using a queue
+3. Groups contributors by operation and builds Z3 constraints
+4. Applies security constraints from ``G.extra_constraints``
+5. Solves and extracts model
 
-Solving Process
----------------
+New Constraint Engine
+---------------------
 
-The constraint solving process works as follows:
+The new engine (``probejs/constraints/engine.py``) uses an Expression IR:
 
-1. **Path Extraction**: Extract operations from vulnerable data flow path
-2. **Constraint Building**: Build constraint system from operations
-3. **Z3 Solving**: Use Z3 to find satisfying assignments
-4. **Solution Validation**: Validate solutions against original constraints
-5. **Exploit Generation**: Generate concrete input values
+**Core Expression Types:**
 
-.. code-block:: python
+- ``ConstString``, ``ConstNumber``: Constants
+- ``Symbol``: Graph node reference
+- ``Concat``, ``Add``: Operations
+- ``Choice``: Multiple possible expressions
+- ``PathConstraint``: Expression + path condition
 
-   def solve_vulnerability(graph, path):
-       # Extract operations from path
-       operations = graph.extract_operations(path)
-       
-       # Build constraints
-       builder = ConstraintBuilder()
-       for op in operations:
-           builder.add_operation(op)
-       
-       constraints = builder.build_constraints()
-       
-       # Solve with Z3
-       solver = Z3Solver()
-       for constraint in constraints:
-           solver.add_constraint(constraint)
-       
-       if solver.check():
-           model = solver.get_model()
-           return solver.generate_exploit(model)
-       
-       return None
+**Key Functions:**
 
-Exploit Generation
-------------------
+- ``build_expressions()``: Builds expression DAGs by following ``CONTRIBUTES_TO`` edges backward
+- ``encode_to_z3()``: Converts Expression DAG to Z3 terms
 
-Once constraints are solved, concrete exploits are generated:
+**Path-Sensitive Solving:**
 
 .. code-block:: python
 
-   from probejs.core.solver import ExploitGenerator
+   from probejs.constraints import solve_path_sensitive
 
-   generator = ExploitGenerator()
+   G.solve_from = "; rm -rf /"
+   for assertions, results in solve_path_sensitive(
+       G, final_objs=[sink_obj], path_nodes=path_nodes
+   ):
+       if results != "failed":
+           print("Exploit found", results)
 
-   # Generate exploit from model
-   exploit = generator.generate_exploit(model, {
-       'userInput': 'string',
-       'targetFunction': 'child_process.exec'
-   })
+Usage Example
+-------------
 
-   # Result: {'userInput': '; rm -rf /', 'payload': 'ping ; rm -rf /'}
-
-Example Exploits
-----------------
-
-**OS Command Injection:**
 .. code-block:: python
 
-   # Vulnerable code: exec("ping " + userInput);
-   # Generated exploit:
-   {
-       'userInput': '; cat /etc/passwd',
-       'full_command': 'ping ; cat /etc/passwd',
-       'vulnerability': 'os_command_injection'
-   }
+   from probejs.core.solver import solve2
 
-**XSS Exploit:**
-.. code-block:: python
+   G.solve_from = "; rm -rf /"  # OS command injection payload
+   for assertions, results in solve2(G, final_objs=[sink_obj_id], initial_objs=[source_obj_id]):
+       if results != "failed":
+           print("Exploit found!")
+           for var_name, (human_name, value) in results.items():
+               print(f"{human_name} = {value}")
 
-   # Vulnerable code: res.send("<h1>" + userInput + "</h1>");
-   # Generated exploit:
-   {
-       'userInput': '<script>alert("XSS")</script>',
-       'full_response': '<h1><script>alert("XSS")</script></h1>',
-       'vulnerability': 'xss'
-   }
-
-**Path Traversal:**
-.. code-block-block:: python
-
-   # Vulnerable code: fs.readFile(userInput, callback);
-   # Generated exploit:
-   {
-       'userInput': '../../../etc/passwd',
-       'full_path': '../../../etc/passwd',
-       'vulnerability': 'path_traversal'
-   }
-
-Advanced Constraint Solving
-----------------------------
-
-**Complex String Operations:**
-.. code-block:: python
-
-   # Handle template literals
-   def solve_template_literal(template, variables):
-       constraints = []
-       for i, part in enumerate(template.parts):
-           if isinstance(part, str):
-               constraints.append(z3.StringVal(part))
-           else:
-               constraints.append(variables[part.name])
-       
-       return z3.Concat(*constraints)
-
-**Array Operations:**
-.. code-block:: python
-
-   # Handle array indexing
-   def solve_array_access(array_var, index_expr):
-       index = solve_expression(index_expr)
-       return z3.Select(array_var, index)
-
-**Object Property Access:**
-.. code-block:: python
-
-   # Handle property access
-   def solve_property_access(obj_var, prop_name):
-       return z3.Select(obj_var, z3.StringVal(prop_name))
-
-Solver Configuration
+Supported Operations
 --------------------
 
-The solver can be configured for different scenarios:
+- **String**: ``string_concat``, ``array_join`` → ``z3.Concat(...)``
+- **Numeric**: ``numeric_add`` → ``z3.Sum(...)``, ``sub`` → subtraction
+- **Unknown**: ``unknown_add`` (tries string first, falls back to numeric)
+- **Other**: ``UnknownOp`` creates fresh symbol
 
-.. code-block:: python
+Constraints
+-----------
 
-   solver_config = {
-       'timeout': 30000,  # 30 seconds
-       'max_memory': '4GB',
-       'random_seed': 42,
-       'logic': 'QF_S',  # Quantifier-free strings
-       'strategy': 'default'
-   }
-
-   solver = Z3Solver(config=solver_config)
-
-Performance Optimization
-------------------------
-
-The solver is optimized for performance:
-
-* **Incremental Solving**: Add/remove constraints without rebuilding
-* **Parallel Solving**: Solve multiple constraint systems in parallel
-* **Caching**: Cache solutions for similar constraint patterns
-* **Approximation**: Use approximations for complex constraints
-
-.. code-block:: python
-
-   # Incremental solving example
-   solver.push()  # Save current state
-   solver.add_constraint(new_constraint)
-   
-   if solver.check():
-       result = solver.get_model()
-   
-   solver.pop()  # Restore previous state
+- **Literals**: Constants from graph nodes (``symbol.string() == z3.StringVal("literal")``)
+- **Sinks**: ``contains=True`` → ``z3.Contains()``, ``contains=False`` → equality
+- **Security**: From ``G.extra_constraints`` (``not-contains``, ``contains``)
+- **Default**: Prevents command chaining (``;``) and HTML entity encoding (``&``)
 
 Limitations
 -----------
 
-The constraint solver has several limitations:
+1. Only models basic string/numeric operations
+2. Limited JavaScript type coercion handling
+3. 2-second solver timeout
+4. Z3 string theory limitations
+5. Legacy solver models all paths together (not path-sensitive)
 
-* **String Theory**: Z3's string theory has limitations for complex operations
-* **Regular Expressions**: Limited support for regex constraints
-* **Performance**: Complex constraint systems can be slow to solve
-* **Memory Usage**: Large constraint systems consume significant memory
-
-* **Undecidable Problems**: Some constraints may be undecidable
-* **Approximation**: Some constraints are approximated rather than solved exactly
-
-Troubleshooting
----------------
-
-**Common Issues:**
-
-* **Solver Timeout**: Increase timeout or simplify constraints
-* **Memory Issues**: Reduce constraint complexity or use approximation
-* **Unsatisfiable**: Check for contradictory constraints
-* **Model Extraction**: Ensure all variables are properly constrained
-
-**Debug Mode:**
-.. code-block:: python
-
-   # Enable debug mode
-   solver = Z3Solver(debug=True)
-   solver.set_log_level('verbose')
-
-   # Export constraints for external analysis
-   solver.export_constraints('constraints.smt2')
-
-Future Enhancements
+Future Improvements
 -------------------
 
-Planned improvements to the constraint solver:
-
-* **Enhanced String Theory**: Better support for complex string operations
-* **Regex Support**: Full regular expression constraint solving
-* **Machine Learning**: Use ML to guide constraint solving
-* **Distributed Solving**: Distribute solving across multiple machines
+The new constraint engine provides a foundation for better operation modeling, type handling, path-sensitive solving, and support for more JavaScript operations.

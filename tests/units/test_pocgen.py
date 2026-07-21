@@ -7,13 +7,13 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-from pocgen.agent_runner import _text_output as agent_text_output
-from pocgen.agent_runner import AgentRunError, build_command, redact_command, run_agent
-from pocgen.evidence import evidence_for_stage, render_json
-from pocgen.generate import _overall_status, build_prompt, write_json
-from pocgen.packet import extract_agent_packet, extract_poc, load_report, select_finding, target_cwd
-from pocgen.validate import _text_output as validation_text_output
-from pocgen.validate import default_command, validate_output
+from tools.pocgen.agent_runner import _text_output as agent_text_output
+from tools.pocgen.agent_runner import AgentRunError, build_command, redact_command, run_agent
+from tools.pocgen.evidence import evidence_for_stage, render_json
+from tools.pocgen.generate import _overall_status, build_prompt, write_json
+from tools.pocgen.packet import extract_agent_packet, extract_poc, load_report, select_finding, target_cwd
+from tools.pocgen.validate import _text_output as validation_text_output
+from tools.pocgen.validate import default_command, validate_output
 
 
 class TestPocgen(unittest.TestCase):
@@ -224,7 +224,7 @@ class TestPocgen(unittest.TestCase):
             proc = subprocess.run(
                 [
                     sys.executable,
-                    "pocgen/generate.py",
+                    "tools/pocgen/generate.py",
                     "--report",
                     str(report_path),
                     "--finding",
@@ -255,7 +255,7 @@ class TestPocgen(unittest.TestCase):
             proc = subprocess.run(
                 [
                     sys.executable,
-                    "pocgen/generate.py",
+                    "tools/pocgen/generate.py",
                     "--report",
                     "~/report.json",
                     "--finding",
@@ -285,7 +285,7 @@ class TestPocgen(unittest.TestCase):
             proc = subprocess.run(
                 [
                     sys.executable,
-                    "pocgen/generate.py",
+                    "tools/pocgen/generate.py",
                     "--report",
                     str(report_path),
                     "--finding",
@@ -312,7 +312,7 @@ class TestPocgen(unittest.TestCase):
             proc = subprocess.run(
                 [
                     sys.executable,
-                    "pocgen/generate.py",
+                    "tools/pocgen/generate.py",
                     "--report",
                     str(report_path),
                     "--finding",
@@ -349,7 +349,7 @@ class TestPocgen(unittest.TestCase):
             proc = subprocess.run(
                 [
                     sys.executable,
-                    "pocgen/generate.py",
+                    "tools/pocgen/generate.py",
                     "--report",
                     str(report_path),
                     "--finding",
@@ -376,7 +376,7 @@ class TestPocgen(unittest.TestCase):
             proc = subprocess.run(
                 [
                     sys.executable,
-                    "pocgen/generate.py",
+                    "tools/pocgen/generate.py",
                     "--report",
                     str(report_path),
                     "--finding",
@@ -415,7 +415,7 @@ class TestPocgen(unittest.TestCase):
                     proc = subprocess.run(
                         [
                             sys.executable,
-                            "pocgen/generate.py",
+                            "tools/pocgen/generate.py",
                             "--report",
                             str(report_path),
                             "--finding",
@@ -442,7 +442,7 @@ class TestPocgen(unittest.TestCase):
             proc = subprocess.run(
                 [
                     sys.executable,
-                    "pocgen/generate.py",
+                    "tools/pocgen/generate.py",
                     "--report",
                     str(report_path),
                     "--finding",
@@ -469,7 +469,7 @@ class TestPocgen(unittest.TestCase):
             proc = subprocess.run(
                 [
                     sys.executable,
-                    "pocgen/generate.py",
+                    "tools/pocgen/generate.py",
                     "--report",
                     str(report_path),
                     "--finding",

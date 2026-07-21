@@ -31,7 +31,7 @@ probejs = "probejs.__main__:main"
 probejs-setup = "probejs._setup:main"
 
 [tool.setuptools.packages.find]
-include = ["probejs*"]
+include = ["probejs*", "tools*"]
 
 [tool.setuptools.package-data]
 # Bundle the JavaScript/TypeScript parser sources (not node_modules — those
