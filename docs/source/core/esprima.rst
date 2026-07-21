@@ -24,19 +24,22 @@ The interface consists of several components:
 * **ErrorHandler**: Manages parsing errors and exceptions
 
 Installation and Setup
-----------------------
+---------------------
 
-The esprima interface requires Node.js and npm dependencies:
+The esprima interface requires Node.js and npm dependencies which are
+installed automatically on first use (or via the ``probejs-setup`` command):
 
 .. code-block:: bash
 
-   # Install npm dependencies
-   cd esprima-csv && npm install
+   # Install JavaScript parser dependencies manually
+   probejs-setup                # or: python -m probejs setup
 
    # Dependencies installed:
    # - esprima@^4.0.1: JavaScript parser
    # - commander@^3.0.2: CLI framework
    # - ansicolor@^1.1.84: Terminal colors
+   # - typescript@^5.9: TypeScript/TSX lowering
+   # - source-map@^0.6.1: Source map support
 
 Basic Usage
 -----------
@@ -245,7 +248,7 @@ The Node.js side provides a CLI interface:
 
 .. code-block:: javascript
 
-   // esprima-csv/index.js
+   // probejs/_parser/main.js
    const program = require('commander');
    const esprima = require('esprima');
 

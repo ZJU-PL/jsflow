@@ -6,48 +6,50 @@ Installation guide for probejs and its dependencies.
 Prerequisites
 -------------
 
-* **Python 3.7+**: Core analysis engine
-* **Node.js 12+**: JavaScript AST parsing (Esprima)
-* **Z3 4.8+**: Constraint solving for exploit generation
+* **Python 3.8+**: Core analysis engine
+* **Node.js 12+**: JavaScript AST parsing (will be installed on first use)
 * **pip**: Python package manager
 
-Installation Steps
-------------------
+From PyPI
+---------
 
-1. **Clone the repository**:
-   .. code-block:: bash
+.. code-block:: bash
 
-      git clone <repository-url>
-      cd probejs
+   pip install probejs
 
-2. **Install npm dependencies** (for Esprima AST parser):
-   .. code-block:: bash
+On first run, the tool automatically installs its JavaScript dependencies into
+``~/.cache/probejs/parser/`` via ``npm install``. You can also trigger this step
+manually:
 
-      cd esprima-csv && npm install && cd ..
+.. code-block:: bash
 
-   This installs:
-   - ``esprima`` (^4.0.1): JavaScript parser
-   - ``commander`` (^3.0.2): Command-line interface utilities
-   - ``ansicolor`` (^1.1.84): Terminal color output
+   probejs-setup                # or: python -m probejs setup
 
-3. **Set up Python virtual environment** (recommended):
-   .. code-block:: bash
+From Source (Development)
+-------------------------
 
-      python3 -m venv venv
-      source venv/bin/activate  # On Windows: venv\Scripts\activate
+.. code-block:: bash
 
-4. **Install Python dependencies**:
-   .. code-block:: bash
+   git clone <repository-url>
+   cd probejs
 
-      pip install -r requirements.txt
+   # Install Python package in editable mode
+   pip install -e .
 
-Alternatively, you can use the provided installation script:
+   # Install JavaScript parser dependencies
+   cd probejs/_parser && npm install && cd ../..
+
+   # Verify
+   python -m probejs --help
+
+Alternatively, use the provided installation script:
+
 .. code-block:: bash
 
    ./install.sh
 
-This script will automatically:
-- Install npm dependencies in ``esprima-csv/``
+This will:
+- Install npm dependencies in ``probejs/_parser/``
 - Create a Python virtual environment if it doesn't exist
 - Activate the virtual environment
 - Install all Python dependencies
@@ -62,32 +64,17 @@ Python Dependencies
 * ``tqdm`` (~=4.48.2): Progress bars for long-running operations
 * ``setuptools``: Package building utilities
 
-Node.js Dependencies
---------------------
+JavaScript Dependencies
+-----------------------
+
+The JavaScript parser scripts are bundled with the Python package and installed
+lazily via npm on first use (or via ``probejs-setup``). They include:
 
 * ``esprima`` (^4.0.1): JavaScript parser for AST generation
+* ``typescript`` (^5.9): TypeScript/TSX lowering and project configuration support
+* ``source-map`` (^0.6.1): Original TypeScript source location mapping
 * ``commander`` (^3.0.2): Command-line interface framework
 * ``ansicolor`` (^1.1.84): Terminal color formatting
-
-Z3 Installation
----------------
-
-**Ubuntu/Debian**:
-.. code-block:: bash
-
-   sudo apt-get install libz3-dev
-
-**macOS with Homebrew**:
-.. code-block:: bash
-
-   brew install z3
-
-**From source**:
-.. code-block:: bash
-
-   git clone https://github.com/Z3Prover/z3.git
-   cd z3 && python scripts/mk_make.py
-   cd build && make && sudo make install
 
 Verification
 ------------
@@ -103,13 +90,17 @@ To verify the installation:
    echo "console.log('Hello, World!');" > test.js
    python -m probejs test.js
 
-If the installation is successful, you should see the help message and analysis output without errors.
+If the installation is successful, you should see the help message and analysis
+output without errors. The JavaScript parser dependencies will be installed
+automatically on first use if they are not already present.
 
 Troubleshooting
 ---------------
 
-* **Node.js not found**: Install Node.js 12.x or later via your package manager or from https://nodejs.org/
-* **Z3 not found**: Install Z3 or set ``Z3_DIR`` environment variable
-* **npm install fails**: Try clearing npm cache with ``npm cache clean --force``
-* **Python import errors**: Ensure you're using the correct Python environment and that all dependencies are installed
-* **Permission errors**: Use a virtual environment or install with ``--user`` flag
+* **Node.js not found**: Install Node.js 12.x or later via your package manager
+  or from https://nodejs.org/
+* **npm install fails**: The parser setup runs ``npm install`` automatically.
+  If it fails, try running ``probejs-setup --force``.
+* **Python import errors**: Ensure you're using the correct Python environment
+  and that all dependencies are installed.
+* **Permission errors**: Use a virtual environment or install with ``--user`` flag.

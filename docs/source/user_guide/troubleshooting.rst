@@ -38,11 +38,11 @@ Parsing Errors
 **Solution**: Check that the JavaScript file is syntactically valid. probejs uses Esprima for parsing, so any syntax errors will cause the analysis to fail.
 
 **Issue**: "AST generation failed"
-**Solution**: Ensure the esprima-csv dependencies are installed:
+**Solution**: Ensure the JavaScript parser dependencies are installed:
 
 .. code-block:: bash
 
-   cd esprima-csv && npm install && cd ..
+   probejs-setup                # or: python -m probejs setup
 
 Analysis Issues
 ~~~~~~~~~~~~~~~

@@ -27,9 +27,9 @@
 
 ### 1. "Module not found" errors
 
-Ensure npm dependencies are installed:
+Ensure the JavaScript parser dependencies are installed:
 ```bash
-cd esprima-csv && npm install && cd ..
+probejs-setup                # or: python -m probejs setup
 ```
 
 ### 2. Z3 solver timeouts
