@@ -67,6 +67,12 @@ from .esprima import esprima_parse, esprima_search
 from . import solver
 from ..vuln.vul_checking import *
 from ..vuln.vul_func_lists import signature_lists
+from .._setup import get_builtin_packages_dir
+
+# Path to the JS-modeled built-in module stubs.  Resolved lazily via
+# get_builtin_packages_dir(), which caches them under ~/.cache/probejs/
+# so the JS parser's search.js walk-up finds them consistently.
+BUILTIN_PACKAGES_DIR = str(get_builtin_packages_dir())
 
 registered_func = {}
 
@@ -2609,9 +2615,7 @@ def probejs_function(G, func_ast, branches=None, block_scope=True, caller_ast=No
 
     # rough CF run
     if G.two_pass:
-        builtin_path = os.path.normpath(
-            os.path.abspath(__file__) + "../../../builtin_packages"
-        )
+        builtin_path = BUILTIN_PACKAGES_DIR
         # file_path = G.get_cur_file_path()
         file_path = G.get_node_file_path(func_ast)
         if G.first_pass:
@@ -2752,9 +2756,7 @@ def probejs_block(
         logger.warning(f"Block {ast_node} exits because of infinite distance")
         logger.warning(f"Call stack: {G.call_stack}")
         return [], []
-    builtin_path = os.path.normpath(
-        os.path.abspath(__file__) + "../../../builtin_packages"
-    )
+    builtin_path = BUILTIN_PACKAGES_DIR
     file_path = G.get_cur_file_path()
     prev_dont_quit = G.dont_quit
     if file_path is None or file_path.startswith(  # why?
@@ -3092,9 +3094,7 @@ def call_func_obj(
         # first pass (coarse-grained)
         if G.first_pass and func_ast is not None:
             # and not is_new:
-            builtin_path = os.path.normpath(
-                os.path.abspath(__file__) + "../../../builtin_packages"
-            )
+            builtin_path = BUILTIN_PACKAGES_DIR
             file_path = G.get_node_file_path(func_ast)
             # print('func obj:', func_obj, 'ast:', func_ast)
             attrs = G.get_node_attr(func_ast)
@@ -4759,9 +4759,7 @@ def handle_require(G: Graph, caller_ast, extra, _, module_names):
             if not module_exports_objs:
                 # check if the file's AST is in the graph
                 require_from = G.get_cur_file_path()
-                if require_from == os.path.normpath(
-                    os.path.abspath(__file__) + "../../../builtin_packages/pm.js"
-                ):
+                if require_from == os.path.join(BUILTIN_PACKAGES_DIR, "pm.js"):
                     require_from = G.file_stack[-2]
                 file_path, _ = esprima_search(
                     module_name,
@@ -4803,9 +4801,7 @@ def handle_require(G: Graph, caller_ast, extra, _, module_names):
                 else:
                     logger.error(f"File {start_id} has no children")
             if module_exports_objs:
-                builtin_path = os.path.normpath(
-                    os.path.abspath(__file__) + "../../../builtin_packages"
-                )
+                builtin_path = BUILTIN_PACKAGES_DIR
                 if G.first_pass:
                     if (
                         G.get_node_attr(module_exports_objs[0]).get("unresolved")

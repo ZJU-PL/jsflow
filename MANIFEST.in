@@ -3,3 +3,6 @@
 recursive-include probejs/_parser *.js *.json *.sh *.py
 exclude probejs/_parser/node_modules
 recursive-exclude probejs/_parser/node_modules *
+
+# Include the JS-modeled built-in module stubs.
+recursive-include probejs/builtin_packages *.js

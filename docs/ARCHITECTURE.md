@@ -14,6 +14,7 @@ The probejs module consists of several key components:
 - **`solver.py`**: Heuristic Z3-based path feasibility check. Implements `solve2()` which builds lightweight constraint systems from `CONTRIBUTES_TO` graph edges (string concatenation, numeric addition) and checks reachability. This is used only when the `-X` flag is passed.
 - **`modeled_js_builtins.py`**: Models JavaScript built-in functions and objects
 - **`modeled_builtin_modules.py`**: Models Node.js built-in modules (fs, child_process, etc.)
+- **`builtin_packages/`**: JS-modeled stubs for built-in Node modules (shipped as package data).  Shipped inside the wheel at ``probejs/builtin_packages/``; on first use ``probejs/_setup.py`` copies them to ``~/.cache/probejs/builtin_packages/`` so the JavaScript parser's ``search.js`` can resolve them via its walk-up search. May be disabled with ``--no-builtin-packages``.
 
 ## Supporting Modules
 

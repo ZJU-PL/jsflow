@@ -6,6 +6,7 @@ import json
 import base64
 
 from probejs.core import esprima
+from probejs._setup import get_builtin_packages_dir
 
 
 class TestEsprimaParse(unittest.TestCase):
@@ -483,9 +484,7 @@ register((value: string) => console.log(value));
         self.assertIn("MainAbility", output)
 
     def test_extended_tslib_model_contains_modern_helpers(self):
-        tslib_path = os.path.realpath(
-            os.path.join(os.path.dirname(esprima.main_js_path), "..", "builtin_packages", "tslib.js")
-        )
+        tslib_path = os.path.join(get_builtin_packages_dir(), "tslib.js")
         with open(tslib_path, encoding="utf-8") as fp:
             model = fp.read()
 

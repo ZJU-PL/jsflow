@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "probejs"
-version = "1.0.0"
+version = "1.0.1"
 description = "A static analysis framework for JavaScript vulnerability detection"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -36,4 +36,7 @@ include = ["probejs*"]
 [tool.setuptools.package-data]
 # Bundle the JavaScript/TypeScript parser sources (not node_modules — those
 # are installed lazily at runtime via ``probejs/_setup.py``).
-probejs = ["_parser/*.js", "_parser/*.json", "_parser/*.sh", "_parser/*.py"]
+probejs = [
+    "_parser/*.js", "_parser/*.json", "_parser/*.sh", "_parser/*.py",
+    "builtin_packages/*.js",
+]

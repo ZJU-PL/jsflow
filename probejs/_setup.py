@@ -31,6 +31,7 @@ from pathlib import Path
 
 CACHE_DIR = Path.home() / ".cache" / "probejs"
 _PARSER_PACKAGE_DIR = Path(__file__).resolve().parent / "_parser"
+_BUILTIN_PACKAGES_SRC = Path(__file__).resolve().parent / "builtin_packages"
 
 # ---------------------------------------------------------------------------
 # Public helpers
@@ -111,6 +112,21 @@ def main() -> None:
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+
+def get_builtin_packages_dir() -> Path:
+    """Return the path to the JS-modeled built-in module stubs, installing to
+    a user-writable cache on first use so the JS parser find them via walk-up.
+    """
+    cached = CACHE_DIR / "builtin_packages"
+
+    if not cached.exists():
+        if _BUILTIN_PACKAGES_SRC.is_dir():
+            shutil.copytree(_BUILTIN_PACKAGES_SRC, cached)
+        else:
+            return _BUILTIN_PACKAGES_SRC
+
+    return cached
 
 
 def _install_parser(dest: Path) -> Path:

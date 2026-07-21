@@ -69,6 +69,7 @@ When JSON reporting is enabled, `frontend.compilers` records the selected TypeSc
 - `--report-dir`: Override the output directory for structured reports
 - `--typescript`: Parse standard input as TypeScript (file extensions are detected automatically)
 - `-1, --coarse-only`: Coarse analysis only
+- `--no-builtin-packages`: Disable JS-modeled stubs for built-in Node modules (shipped in ``probejs/builtin_packages/``). Useful when evaluating against plain JavaScript code to avoid the influence of modeled API behaviour.
 
 ## Programmatic Usage
 
