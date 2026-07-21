@@ -1,4 +1,4 @@
-cd ./esprima-csv && npm i && cd ..;
+cd ./probejs/_parser && npm i && cd ../..;
 if [ ! -d "venv" ]; then
     python3 -m venv venv
 fi
