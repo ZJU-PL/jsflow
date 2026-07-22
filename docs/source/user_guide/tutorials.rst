@@ -47,13 +47,13 @@ Check the analysis log:
 
 You should see output indicating that an OS command injection vulnerability was detected.
 
-**Step 4: Generate exploit payload**
+**Step 4: Path feasibility check (experimental)**
 
 .. code-block:: bash
 
    python -m probejs -X -t os_command vulnerable_app.js
 
-The solver will attempt to generate concrete input values that would trigger the vulnerability.
+The solver will attempt to determine whether the path constraints are satisfiable. This does **not** generate runnable exploits — it is a heuristic feasibility check.
 
 Tutorial 2: Prototype Pollution Detection
 -----------------------------------------

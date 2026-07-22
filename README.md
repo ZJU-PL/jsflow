@@ -146,5 +146,6 @@ Declaration files (`.d.ts`, `.d.mts`, and `.d.cts`) are not emitted as runtime f
 - **[Usage Guide](docs/source/user_guide/usage.rst)**: Command-line options, canonical JSON reporting, programmatic usage, and examples
 - **[Vulnerability Types](docs/source/user_guide/vulnerability_detection.rst)**: Detailed information about each vulnerability type with examples
 - **[Troubleshooting](docs/source/user_guide/troubleshooting.rst)**: Limitations, common issues, debugging tips, and references
+- **[Evaluation & Benchmarks](docs/source/user_guide/evaluation.rst)**: Benchmark datasets, regression evaluation, metrics, and current results
 - **[PoC Generation Workflows](docs/source/user_guide/poc_generation.rst)**: Difference between the interactive skill and automated runner approaches
 - **[PoC Skill](tools/pocgen/skills/probejs-poc-generation/SKILL.md)**: Agent skill for turning `report.json` findings into runnable PoCs

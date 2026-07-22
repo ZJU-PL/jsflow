@@ -1,37 +1,45 @@
 Esprima Interface
 =================
 
-The ``esprima`` module provides the interface between probejs and the Esprima JavaScript parser. It handles parsing JavaScript source code into ASTs and managing the communication with the Node.js Esprima process.
+The ``esprima`` module provides the Python bridge to the bundled JavaScript/TypeScript parsing
+scripts shipped in ``probejs/_parser/``. It handles parsing JavaScript and TypeScript source code
+into the CSV/AST form consumed by the analysis pipeline, and provides module resolution helpers.
 
 Overview
 --------
 
 The esprima interface is responsible for:
 
-* Parsing JavaScript source code into ASTs using Esprima
-* Managing the Node.js subprocess that runs Esprima
-* Converting Esprima AST format to probejs's internal representation
-* Handling parsing errors and edge cases
+* Parsing JavaScript and TypeScript files into AST/CSV format using Esprima and the TypeScript compiler
+* Resolving Node-style and tsconfig-aware module entry points
+* Discovering the transitive file set loaded by ``require(...)``
+* Managing the lazy installation of JavaScript parser dependencies on first use
 
 Architecture
 ------------
 
 The interface consists of several components:
 
-* **EsprimaParser**: Main parser class that manages the Node.js process
-* **ASTConverter**: Converts Esprima AST to internal format
-* **ProcessManager**: Handles Node.js subprocess lifecycle
-* **ErrorHandler**: Manages parsing errors and exceptions
+* **``esprima_parse()``**: Main parsing function that invokes the Node.js parser via subprocess
+* **``esprima_search()``**: Module resolution using the bundled Node-side resolver
+* **``get_file_list()``**: Transitive file discovery for a ``require()`` call
+* **``_setup`` integration**: The parser's npm dependencies are installed lazily via ``probejs._setup.get_parser_dir()``
 
-Installation and Setup
----------------------
+Unlike the older documentation described, there is no ``EsprimaParser`` class, no ``parse_js``/
+``parse_file`` convenience functions, and no persistent Node.js subprocess. Each call spawns a
+fresh ``node`` process for simplicity and reliability.
 
-The esprima interface requires Node.js and npm dependencies which are
-installed automatically on first use (or via the ``probejs-setup`` command):
+Parser Lifecycle
+----------------
+
+The JavaScript scripts are shipped as package data (``probejs/_parser/``) but their npm
+dependencies (``esprima``, ``typescript``, etc.) are **not** bundled in the wheel. On the first
+call to any function in this module, ``probejs._setup.get_parser_dir()`` copies the scripts to
+``~/.cache/probejs/parser/`` and runs ``npm install``. Subsequent calls reuse the cached copy.
 
 .. code-block:: bash
 
-   # Install JavaScript parser dependencies manually
+   # Install JavaScript parser dependencies manually ahead of time
    probejs-setup                # or: python -m probejs setup
 
    # Dependencies installed:
@@ -44,288 +52,117 @@ installed automatically on first use (or via the ``probejs-setup`` command):
 Basic Usage
 -----------
 
-Parsing JavaScript code is straightforward:
+Parsing JavaScript code:
 
 .. code-block:: python
 
-   from probejs.core.esprima import parse_js, parse_file
+   from probejs.core.esprima import esprima_parse
 
-   # Parse JavaScript string
-   code = "var x = 42; console.log(x);"
-   ast = parse_js(code)
+   # Parse a file
+   csv_output = esprima_parse("input.js")
 
-   # Parse JavaScript file
-   ast = parse_file("input.js")
+   # Parse from stdin
+   csv_output = esprima_parse("-", input='var x = 42;')
 
-The AST is returned as a Python dictionary compatible with the Esprima AST format.
+   # Pass extra CLI flags
+   csv_output = esprima_parse("input.ts", args=["--json"])
 
-AST Format
-----------
+The returned string is a CSV or JSON payload emitted by the parser script. The caller
+(typically ``opgen``) is responsible for decoding it.
 
-The parsed AST follows the Esprima format:
-
-.. code-block:: python
-
-   # Example AST for "var x = 42;"
-   ast = {
-       'type': 'Program',
-       'body': [
-           {
-               'type': 'VariableDeclaration',
-               'declarations': [
-                   {
-                       'type': 'VariableDeclarator',
-                       'id': {
-                           'type': 'Identifier',
-                           'name': 'x'
-                       },
-                       'init': {
-                           'type': 'Literal',
-                           'value': 42
-                       }
-                   }
-               ],
-               'kind': 'var'
-           }
-       ],
-       'sourceType': 'script'
-   }
-
-Node Types
-----------
-
-Common AST node types include:
-
-**Statements:**
-* ``VariableDeclaration``: Variable declarations (``var``, ``let``, ``const``)
-* ``FunctionDeclaration``: Function declarations
-* ``ExpressionStatement``: Expression statements
-* ``IfStatement``: Conditional statements
-* ``WhileStatement``: While loops
-* ``ForStatement``: For loops
-* ``ReturnStatement``: Return statements
-
-**Expressions:**
-* ``Identifier``: Variable names
-* ``Literal``: Literal values (strings, numbers, booleans)
-* ``BinaryExpression``: Binary operations (``+``, ``-``, ``*``, ``/``)
-* ``UnaryExpression``: Unary operations (``!``, ``-``, ``typeof``)
-* ``CallExpression``: Function calls
-* ``MemberExpression``: Property access (``obj.prop``)
-* ``AssignmentExpression``: Assignments (``=``)
-
-**Structural:**
-* ``Program``: Root node of AST
-* ``BlockStatement``: Code blocks (``{ ... }``)
-* ``FunctionBody``: Function body contents
-
-Process Management
-------------------
-
-The esprima interface manages a Node.js subprocess:
-
-.. code-block:: python
-
-   from probejs.core.esprima import EsprimaParser
-
-   # Create parser instance
-   parser = EsprimaParser()
-
-   # Parse code (automatically manages process)
-   ast = parser.parse("var x = 42;")
-
-   # Cleanup when done
-   parser.close()
-
-The process is automatically started on first use and reused for subsequent parses.
-
-Error Handling
---------------
-
-Parsing errors are handled gracefully:
-
-.. code-block:: python
-
-   try:
-       ast = parse_js("var x = ;")  # Invalid syntax
-   except ParseError as e:
-       print(f"Parse error: {e}")
-       print(f"Line: {e.lineno}, Column: {e.column}")
-
-Common error types:
-
-* **SyntaxError**: Invalid JavaScript syntax
-* **ProcessError**: Node.js process issues
-* **TimeoutError**: Parsing timeout
-* **IOError**: File I/O problems
-
-Configuration
--------------
-
-The parser can be configured with various options:
-
-.. code-block:: python
-
-   config = {
-       'ecma_version': 2018,  # ECMAScript version
-       'source_type': 'script',  # 'script' or 'module'
-       'allow_return_outside_function': False,
-       'allow_hash_bang': False,
-       'locations': True,  # Include location info
-       'ranges': False,  # Include range info
-       'timeout': 30000  # Parse timeout (ms)
-   }
-
-   parser = EsprimaParser(config=config)
-
-Advanced Features
+Module Resolution
 -----------------
 
-**Source Maps:**
-The parser can handle source maps:
+Resolve a Node-style module import:
 
 .. code-block:: python
 
-   # Parse with source map support
-   ast = parser.parse(code, source_map=True)
+   from probejs.core.esprima import esprima_search
 
-**Module Parsing:**
-Support for ES6 modules:
+   main_path, module_dir = esprima_search("express", "/path/to/project")
+   print(f"Main entry: {main_path}")
+   print(f"Module dir: {module_dir}")
 
-.. code-block:: python
-
-   # Parse as ES6 module
-   ast = parser.parse(code, source_type='module')
-
-**Comments and Whitespace:**
-Preserve comments and whitespace:
+This mirrors Node.js resolution closely enough for probejs's module analysis. It returns
+both the discovered main file and the resolved module directory.
 
 .. code-block:: python
 
-   # Parse with comments
-   ast = parser.parse(code, attach_comments=True)
+   # Disable JS-modeled built-in packages
+   main_path, module_dir = esprima_search(
+       "express",
+       "/path/to/project",
+       disable_builtin_packages=True
+   )
 
-Performance Optimization
-------------------------
+Transitive File Discovery
+-------------------------
 
-The parser is optimized for performance:
-
-* **Process Reuse**: Node.js process is reused across parses
-* **Batch Processing**: Multiple files can be parsed in one process
-* **Caching**: Parse results are cached when possible
-* **Streaming**: Large files can be streamed
-
-.. code-block:: python
-
-   # Batch parse multiple files
-   files = ['file1.js', 'file2.js', 'file3.js']
-   asts = parser.parse_batch(files)
-
-   # Stream large file
-   ast = parser.parse_stream(large_file.js)
-
-Integration with Graph
-----------------------
-
-The parsed AST is integrated with the graph construction:
+Discover which files Node touches when evaluating ``require(...)``:
 
 .. code-block:: python
 
-   from probejs.core.esprima import parse_file
-   from probejs.core.graph import Graph
+   from probejs.core.esprima import get_file_list
 
-   # Parse JavaScript file
-   ast = parse_file('input.js')
+   files = get_file_list("child_process")
+   print(files)
+   # e.g., ['child_process.js', 'child_process/promise.js', ...]
 
-   # Create graph and traverse AST
-   graph = Graph()
-   graph.traverse_ast(ast)
+This is useful for tests and higher-level tooling to reason about the module closure.
 
-Node.js Interface
------------------
+Command-line Scripts
+--------------------
 
-The Node.js side provides a CLI interface:
+The Node.js scripts bundled in ``probejs/_parser/`` include:
 
-.. code-block:: javascript
+``main.js`` - Main parsing entry point:
+   - Accepts a file path or ``-`` for stdin
+   - Detects file type from extension (``.js``, ``.ts``, ``.tsx``, ``.mts``, ``.cts``, ``.ets``)
+   - TypeScript/TSX/ArkTS sources are lowered to CommonJS before CSV emission
+   - Outputs a CSV/AST representation on stdout
 
-   // probejs/_parser/main.js
-   const program = require('commander');
-   const esprima = require('esprima');
-
-   program
-     .version('1.0.0')
-     .option('-f, --file <file>', 'Input file')
-     .option('-c, --code <code>', 'Input code')
-     .option('--ecma-version <version>', 'ECMAScript version')
-     .option('--source-type <type>', 'Source type')
-     .parse(process.argv);
-
-   if (program.file) {
-     const code = require('fs').readFileSync(program.file, 'utf8');
-     const ast = esprima.parseScript(code, options);
-     console.log(JSON.stringify(ast));
-   }
+``search.js`` - Module resolution helper:
+   - Resolves ``require()`` paths using Node-style walk-up search
+   - Respects ``tsconfig.json`` baseUrl/paths and package.json exports/imports
+   - Supports the built-in package stubs in ``~/.cache/probejs/builtin_packages/``
 
 Communication Protocol
 ----------------------
 
-Communication between Python and Node.js uses JSON:
+Communication between Python and Node.js uses stdin/stdout:
 
 .. code-block:: python
 
-   # Python sends request
-   request = {
-       'type': 'parse',
-       'code': 'var x = 42;',
-       'options': {
-           'ecmaVersion': 2018,
-           'sourceType': 'script'
-       }
-   }
+   # Python sends file path as CLI argument
+   proc = subprocess.Popen(
+       ["node", "main.js", "input.js"],
+       stdout=subprocess.PIPE,
+       stderr=subprocess.PIPE
+   )
 
-   # Node.js responds with AST
-   response = {
-       'type': 'ast',
-       'ast': {...},
-       'error': None
-   }
+   # Node.js responds with CSV/AST on stdout
+   stdout, stderr = proc.communicate()
+
+The parser writes progress and diagnostic information to stderr. The analysis-relevant
+payload (CSV or JSON AST) is written to stdout.
 
 Troubleshooting
 ---------------
 
 **Common Issues:**
 
-* **Node.js not found**: Install Node.js 12.x or later
-* **Port conflicts**: Ensure Node.js process can communicate
-* **Memory issues**: Increase Node.js memory limit
-* **Parse timeouts**: Increase timeout for large files
+* **Node.js not found**: Install Node.js 12.x or later from https://nodejs.org/
+* **npm install fails**: Run ``probejs-setup --force`` to reinstall
+* **Parse errors**: The parser reports syntax errors on stderr; check ``run_log.log``
+* **Timeout for large files**: Increase timeout via the ``-t`` flag if supported by the parser script
 
 **Debug Mode:**
-.. code-block:: python
-
-   # Enable debug mode
-   parser = EsprimaParser(debug=True)
-
-   # Check process status
-   status = parser.get_process_status()
-   print(f"Process running: {status['alive']}")
+Check ``logs/*/run_log.log`` for parser stderr output, which includes detailed
+information about parsing progress and any errors encountered.
 
 Limitations
 -----------
 
-The esprima interface has several limitations:
-
-* **JavaScript Features**: Limited to features supported by Esprima version
-* **Performance**: Large files may be slow to parse
-* **Memory Usage**: ASTs can consume significant memory
-* **Process Management**: Subprocess management adds overhead
-
-Future Enhancements
--------------------
-
-Planned improvements:
-
-* **Multiple Parsers**: Support for alternative JavaScript parsers
-* **Worker Threads**: Use worker threads for better performance
-* **Incremental Parsing**: Parse only changed portions of files
-* **Better Error Recovery**: Improved error handling and recovery
+* Each ``esprima_parse()`` call spawns a fresh ``node`` subprocess — no persistent process reuse
+* The CSV/AST output format is an internal representation; prefer ``--json`` for structured output
+* ArkTS ``.ets`` support covers the common component subset; vendor-only syntax may require pre-compilation with the HarmonyOS toolchain
