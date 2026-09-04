@@ -173,7 +173,7 @@ class TestTypeScriptIntegration(unittest.TestCase):
         )
 
         self.assertIn("AST_ASSIGN", output)
-        self.assertIn("value = 'ok'", output)
+        self.assertIn("value: string = 'ok'", output)
 
     def test_typescript_types_are_erased_and_locations_are_preserved(self):
         source = """interface RequestData {
@@ -214,7 +214,9 @@ export function getCommand(input: RequestData): string {
 
         self.assertIn(entry, output)
         self.assertIn(dependency, output)
-        self.assertIn('require(\\"./dependency\\")', output)
+        self.assertIn("./dependency", output)
+        self.assertIn("require", output)
+        self.assertNotIn("__importStar", output)
 
     def test_tsconfig_paths_are_resolved(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -268,10 +270,10 @@ service.get(undefined)?.toString();
 
         self.assertIn("AST_CLASS", output)
         self.assertIn("AST_NEW", output)
-        self.assertIn("AST_CONDITIONAL", output)
+        self.assertIn("BINARY_BOOL_OR", output)
         self.assertNotIn("ChainExpression", output)
 
-    def test_commonjs_emit_covers_default_namespace_and_reexports(self):
+    def test_source_level_module_normalization_covers_imports_and_reexports(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             dependency = os.path.join(temp_dir, "dependency.ts")
             barrel = os.path.join(temp_dir, "barrel.ts")
@@ -289,9 +291,13 @@ service.get(undefined)?.toString();
 
             output = esprima.esprima_parse(entry, args=["-o", "-"])
 
-        self.assertIn('require(\\"tslib\\")', output)
-        self.assertIn("__importStar", output)
-        self.assertIn("__exportStar", output)
+        self.assertIn("./dependency", output)
+        self.assertIn("./barrel", output)
+        self.assertIn("Object", output)
+        self.assertIn("assign", output)
+        self.assertNotIn("tslib", output)
+        self.assertNotIn("__importStar", output)
+        self.assertNotIn("__exportStar", output)
         self.assertIn(dependency, output)
         self.assertIn(barrel, output)
 
@@ -348,7 +354,7 @@ service.get(undefined)?.toString();
         self.assertEqual(exported_path, feature)
         self.assertEqual(imported_path, local)
 
-    def test_project_references_are_compiled_and_original_project_is_recorded(self):
+    def test_project_references_are_loaded_and_original_project_is_recorded(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             library_dir = os.path.join(temp_dir, "library")
             app_dir = os.path.join(temp_dir, "app")
@@ -377,7 +383,7 @@ service.get(undefined)?.toString();
         self.assertIn(library, output)
         self.assertIn(app_config, output)
 
-    def test_arkts_ets_component_is_lowered_and_entry_build_is_invoked(self):
+    def test_arkts_requires_vendor_compilation(self):
         source = """@Entry
 @Component
 struct Index {
@@ -394,12 +400,8 @@ struct Index {
             with open(file_path, "w", encoding="utf-8") as fp:
                 fp.write(source)
 
-            output = esprima.esprima_parse(file_path, args=["-o", "-"])
-
-        self.assertIn("AST_CLASS", output)
-        self.assertIn("Text(this.command)", output)
-        self.assertNotIn("struct Index", output)
-        self.assertNotIn("goes default", output)
+            with self.assertRaisesRegex(RuntimeError, "ArkTS .ets input is not supported"):
+                esprima.esprima_parse(file_path, args=["-o", "-"])
 
     def test_type_metadata_marks_callback_call_sites(self):
         source = """declare function register(callback: (value: string) => void): void;
@@ -419,25 +421,16 @@ register((value: string) => console.log(value));
             for row in rows
         ))
 
-    def test_project_local_typescript_compiler_is_preferred(self):
+    def test_tested_typescript_compiler_is_recorded(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            compiler_dir = os.path.join(temp_dir, "node_modules", "typescript")
-            os.makedirs(compiler_dir)
-            bundled_compiler = os.path.realpath(
-                os.path.join(os.path.dirname(esprima.main_js_path), "node_modules", "typescript")
-            )
-            local_compiler = os.path.join(compiler_dir, "index.js")
-            with open(os.path.join(compiler_dir, "package.json"), "w", encoding="utf-8") as fp:
-                fp.write('{"name":"typescript","main":"index.js"}')
-            with open(local_compiler, "w", encoding="utf-8") as fp:
-                fp.write("module.exports = require(" + json.dumps(bundled_compiler) + ");\n")
             entry = os.path.join(temp_dir, "entry.ts")
             with open(entry, "w", encoding="utf-8") as fp:
                 fp.write("export const value: string = 'ok';\n")
 
             output = esprima.esprima_parse(entry, args=["-o", "-"])
 
-        self.assertIn(local_compiler.replace("\\", "\\\\"), output)
+        self.assertIn("typescript/lib/typescript.js", output)
+        self.assertIn('\\"version\\":\\"5.', output)
 
     def test_existing_inline_source_map_restores_original_file(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -463,7 +456,7 @@ register((value: string) => console.log(value));
 
         self.assertIn(original, output)
 
-    def test_arkts_project_manifest_is_attached(self):
+    def test_arkts_manifest_does_not_enable_heuristic_parsing(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             module_root = os.path.join(temp_dir, "entry")
             source_root = os.path.join(module_root, "src", "main")
@@ -478,10 +471,8 @@ register((value: string) => console.log(value));
             with open(entry, "w", encoding="utf-8") as fp:
                 fp.write("@Entry @Component struct Index { build() { Text('ok') } }\n")
 
-            output = esprima.esprima_parse(entry, args=["-o", "-"])
-
-        self.assertIn("build-profile.json5", output)
-        self.assertIn("MainAbility", output)
+            with self.assertRaisesRegex(RuntimeError, "HarmonyOS toolchain"):
+                esprima.esprima_parse(entry, args=["-o", "-"])
 
     def test_extended_tslib_model_contains_modern_helpers(self):
         tslib_path = os.path.join(get_builtin_packages_dir(), "tslib.js")

@@ -1,17 +1,17 @@
 """
-Helpers for invoking the bundled JavaScript/TypeScript parsing scripts.
+Helpers for dispatching to the bundled JavaScript and TypeScript frontends.
 
 This module is the Python bridge to the small Node.js utilities shipped in
 ``probejs/_parser/``.  ``opgen`` uses these helpers to:
 
-- parse JavaScript and TypeScript into the CSV/AST form consumed by probejs
+- parse JavaScript and TypeScript into the shared CSV/AST form consumed by probejs
 - resolve Node-style and tsconfig-aware module entry points
 - discover the transitive file set loaded by a ``require(...)``
 
 Parser lifecycle
 ----------------
 The JavaScript scripts are shipped as package data but their npm dependencies
-(``esprima``, ``typescript``, …) are **not** bundled in the wheel.  On the
+(``esprima``, ``typescript``, ``typescript-estree``, …) are **not** bundled in the wheel. On the
 first call to any function in this module, :func:`probejs._setup.get_parser_dir`
 copies the scripts to ``~/.cache/probejs/parser/`` and runs ``npm install``.
 Subsequent calls reuse the cached copy.
@@ -32,6 +32,14 @@ from probejs._setup import get_parser_dir
 
 _parser_dir: Path | None = None
 
+# Source locations retained for callers and tests that inspect the bundled
+# parser assets. Runtime execution still goes through the lazy cache helpers.
+main_js_path = str(Path(__file__).resolve().parent.parent / "_parser" / "main.js")
+typescript_main_js_path = str(
+    Path(__file__).resolve().parent.parent / "_parser" / "typescript-main.js"
+)
+search_js_path = str(Path(__file__).resolve().parent.parent / "_parser" / "search.js")
+
 
 def _ensure_parser() -> Path:
     """Return the parser directory, setting it up on first call."""
@@ -45,8 +53,26 @@ def _main_js() -> str:
     return str(_ensure_parser() / "main.js")
 
 
+def _typescript_main_js() -> str:
+    return str(_ensure_parser() / "typescript-main.js")
+
+
 def _search_js() -> str:
     return str(_ensure_parser() / "search.js")
+
+
+def _directory_contains_typescript(directory: Path) -> bool:
+    """Return whether *directory* contains a runtime TypeScript source file."""
+    skipped = {"node_modules", ".git", "dist", "build", "coverage"}
+    for root, directories, files in os.walk(directory):
+        directories[:] = [name for name in directories if name not in skipped]
+        for name in files:
+            lower = name.lower()
+            if lower.endswith((".d.ts", ".d.mts", ".d.cts")):
+                continue
+            if Path(name).suffix.lower() in {".ts", ".tsx", ".mts", ".cts"}:
+                return True
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -55,11 +81,11 @@ def _search_js() -> str:
 
 
 def esprima_parse(path="-", args=None, input=None, print_func=print):
-    """Run the JavaScript/TypeScript CSV parser and return its stdout payload.
+    """Run the appropriate JavaScript or TypeScript frontend.
 
     Args:
         path: File path to parse, or ``-`` to read source from stdin.
-        args: Extra CLI flags forwarded to ``probejs/_parser/main.js``.
+        args: Extra CLI flags forwarded to the selected Node frontend.
         input: Optional source text when parsing from stdin.
         print_func: Sink for parser stderr, typically the probejs logger.
 
@@ -69,8 +95,21 @@ def esprima_parse(path="-", args=None, input=None, print_func=print):
     """
     if args is None:
         args = []
+    use_typescript = "--typescript" in args
+    if path != "-":
+        candidate = Path(path)
+        if candidate.suffix.lower() == ".ets":
+            raise RuntimeError(
+                "ArkTS .ets input is not supported by the TypeScript frontend; "
+                "analyze JavaScript produced by the HarmonyOS toolchain instead"
+            )
+        if candidate.suffix.lower() in {".ts", ".tsx", ".mts", ".cts"}:
+            use_typescript = True
+        elif candidate.is_dir():
+            use_typescript = _directory_contains_typescript(candidate)
+    parser_script = _typescript_main_js() if use_typescript else _main_js()
     proc = subprocess.Popen(
-        ["node", _main_js(), path] + args,
+        ["node", parser_script, path] + args,
         text=True,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,

@@ -20,6 +20,7 @@ probejs is a comprehensive static analysis framework for JavaScript that perform
    :caption: Architecture
 
    architecture
+   typescript_frontend
 
 .. toctree::
    :maxdepth: 2
@@ -77,7 +78,7 @@ Requirements
 ------------
 
 * **Python 3.8+**: Core analysis engine
-* **Node.js 12+**: JavaScript AST parsing (Esprima)
+* **Node.js 18.18+**: JavaScript and TypeScript frontend execution
 * **Z3 4.8+**: Constraint solving for path feasibility checking
 * **NetworkX 2.4+**: Graph data structures
 

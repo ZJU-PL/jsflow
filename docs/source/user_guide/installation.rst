@@ -7,7 +7,7 @@ Prerequisites
 -------------
 
 * **Python 3.8+**: Core analysis engine
-* **Node.js 12+**: JavaScript AST parsing (will be installed on first use)
+* **Node.js 18.18+**: JavaScript and TypeScript frontend execution
 * **pip**: Python package manager
 
 From PyPI
@@ -71,8 +71,9 @@ The JavaScript parser scripts are bundled with the Python package and installed
 lazily via npm on first use (or via ``probejs-setup``). They include:
 
 * ``esprima`` (^4.0.1): JavaScript parser for AST generation
-* ``typescript`` (^5.9): TypeScript/TSX lowering and project configuration support
-* ``source-map`` (^0.6.1): Original TypeScript source location mapping
+* ``typescript`` (^5.9): Type checking and project/module configuration
+* ``@typescript-eslint/typescript-estree`` (8.42): Original-source TypeScript/TSX parsing
+* ``source-map`` (^0.6.1): Source mapping for generated JavaScript inputs
 * ``commander`` (^3.0.2): Command-line interface framework
 * ``ansicolor`` (^1.1.84): Terminal color formatting
 
@@ -97,7 +98,7 @@ automatically on first use if they are not already present.
 Troubleshooting
 ---------------
 
-* **Node.js not found**: Install Node.js 12.x or later via your package manager
+* **Node.js not found**: Install Node.js 18.18 or later via your package manager
   or from https://nodejs.org/
 * **npm install fails**: The parser setup runs ``npm install`` automatically.
   If it fails, try running ``probejs-setup --force``.

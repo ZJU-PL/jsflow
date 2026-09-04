@@ -34,18 +34,16 @@ How It Works
 Analysis Pipeline
 ~~~~~~~~~~~~~~~~~
 
-1. **Parsing**: JavaScript source is parsed with Esprima; TypeScript/TSX/ArkTS is first lowered to CommonJS and then parsed into the same normalized AST
+1. **Parsing**: JavaScript source is parsed by the unchanged Esprima frontend. TypeScript and TSX use a separate project frontend that normalizes the original-source AST and emits the same CSV contract directly.
 
    - ES module imports/exports in TypeScript are lowered to the module representation already modeled by probejs
-   - The nearest ``tsconfig.json`` is compiled as a cached project; referenced projects are compiled recursively
+   - The nearest ``tsconfig.json`` is loaded as a type-checking project; referenced projects participate in resolution
    - Module resolution covers tsconfig aliases, package exports/imports, and workspace source packages
-   - ``tslib`` helpers are represented by a small analysis model instead of expanding compiler boilerplate at every call site
-   - Type declaration signatures annotate callback arguments and promise-returning calls without introducing a second TypeScript AST pipeline
-   - The project-local TypeScript installation is preferred over the bundled fallback
-   - Existing inline/external source maps on generated JavaScript are chained into source reporting
-   - Structured compiler diagnostics and HarmonyOS project manifests are retained in the analysis report
-   - ArkTS ``.ets`` files use a line-preserving normalization for common ArkUI component syntax before CommonJS emission
-   - Source maps restore original TypeScript line and column information
+   - No TypeScript JavaScript emission or ``tslib`` compiler helpers are introduced
+   - Exact parser-service node mappings attach resolved callback and promise signatures to their calls
+   - Original TypeScript locations and snippets are retained directly
+   - Structured compiler diagnostics are retained in the analysis report
+   - Generated JavaScript inputs may still use inline or external source maps
    - The AST is converted to CSV format for processing
    - Each node is assigned a unique identifier
 

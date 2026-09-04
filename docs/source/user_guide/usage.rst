@@ -38,9 +38,9 @@ TypeScript files are detected from their extension and use the same commands as 
    python -m probejs --json -t os_command src/index.ts
    python -m probejs ./src
 
-Supported source extensions are ``.ts``, ``.tsx``, ``.mts``, ``.cts``, and ArkTS ``.ets``. Source is compiled to CommonJS, so the downstream graph builder remains the same JavaScript pipeline. The nearest ``tsconfig.json`` is compiled as a project; project references, ``baseUrl``, ``paths``, package ``exports``/``imports``, and npm/pnpm-style workspaces are resolved. Findings are mapped back to original source positions through source maps.
+Supported source extensions are ``.ts``, ``.tsx``, ``.mts``, and ``.cts``. A dedicated frontend reads the nearest ``tsconfig.json``, parses original source, performs analysis-oriented in-memory normalization, and emits the same CSV contract used by the unchanged graph engine. Project references, ``baseUrl``, ``paths``, package ``exports``/``imports``, and npm/pnpm-style workspaces are resolved without compiling TypeScript to JavaScript.
 
-ArkTS ``.ets`` handling normalizes the common runtime-relevant subset: ``struct`` components, standard ArkUI decorators, declarative component blocks, and ``@Entry`` ``build()`` bodies. Vendor-only syntax outside that subset should be compiled to CommonJS with the HarmonyOS toolchain first and the emitted JavaScript supplied to probejs.
+ArkTS ``.ets`` is not accepted by this frontend. Compile ArkTS with the matching HarmonyOS toolchain and analyze the generated JavaScript instead.
 
 For TypeScript read from standard input, pass ``--typescript`` explicitly because stdin has no filename:
 
@@ -50,7 +50,7 @@ For TypeScript read from standard input, pass ``--typescript`` explicitly becaus
 
 Type-only constructs are erased from the analyzed program. Declaration signatures are retained as compact metadata for callback registration and promise-returning APIs, but probejs remains a runtime-oriented flow analysis rather than a TypeScript type checker.
 
-When JSON reporting is enabled, ``frontend.compilers`` records the selected TypeScript compiler and ``frontend.diagnostics`` contains structured syntax, configuration, module-resolution, and semantic diagnostics. Diagnostics do not prevent analysis-oriented CommonJS emission. HarmonyOS project manifests discovered for ``.ets`` inputs are reported under ``frontend.arkts_projects``.
+When JSON reporting is enabled, ``frontend.compilers`` records the tested TypeScript compiler and ``frontend.diagnostics`` contains structured syntax, configuration, module-resolution, and semantic diagnostics. Diagnostics do not prevent conservative runtime analysis.
 
 Command Line Options
 ~~~~~~~~~~~~~~~~~~~~

@@ -7,11 +7,12 @@
     "ansicolor": "^1.1.84",
     "commander": "^3.0.2",
     "esprima": "^4.0.1",
+    "@typescript-eslint/typescript-estree": "8.42.0",
     "source-map": "^0.6.1",
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "test": "node ./main.js test1.js"
+    "test": "node --check ./main.js && node --check ./typescript-main.js && node --check ./source-map.js"
   },
   "author": "",
   "license": "UNLICENSED"

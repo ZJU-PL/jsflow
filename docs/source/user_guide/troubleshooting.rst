@@ -74,9 +74,9 @@ References
 
 - **Object Property Graph (OPG)**: Based on the Object Property Graph analysis technique for representing JavaScript code structure
 - **Esprima**: JavaScript parser used for AST generation (https://esprima.org/)
-- **TypeScript Compiler API**: TypeScript/TSX lowering and module resolution (https://www.typescriptlang.org/)
+- **TypeScript Compiler API**: Type checking and module resolution (https://www.typescriptlang.org/)
 
-ArkTS support targets the common ``.ets`` component subset and the same CommonJS analysis boundary. If an application uses vendor syntax that the bundled normalizer cannot lower, build it with the matching HarmonyOS SDK and analyze its CommonJS JavaScript output.
+ArkTS ``.ets`` syntax is not parsed heuristically. Build it with the matching HarmonyOS SDK and analyze the generated JavaScript output.
 
 - **NetworkX**: Graph data structure library (https://networkx.org/)
 - **Z3**: SMT solver for constraint solving (https://github.com/Z3Prover/z3)

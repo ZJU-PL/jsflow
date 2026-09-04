@@ -44,10 +44,25 @@ def get_parser_dir() -> Path:
     If the parser has not been set up yet, this function copies the bundled
     scripts to ``~/.cache/probejs/parser/`` and runs ``npm install``.
     """
+    # A source checkout may already have its npm dependencies installed. Using
+    # it directly keeps editable installs synchronized with parser source
+    # changes instead of accidentally running a stale user-cache copy.
+    if (_PARSER_PACKAGE_DIR / "node_modules").is_dir():
+        return _PARSER_PACKAGE_DIR
+
     cached = CACHE_DIR / "parser"
 
     if cached.exists() and (cached / "node_modules").exists():
-        return cached
+        source_package = _PARSER_PACKAGE_DIR / "package.json"
+        cached_package = cached / "package.json"
+        required_scripts = [cached / "main.js", cached / "typescript-main.js"]
+        if (
+            source_package.is_file()
+            and cached_package.is_file()
+            and source_package.read_bytes() == cached_package.read_bytes()
+            and all(script.is_file() for script in required_scripts)
+        ):
+            return cached
 
     return _install_parser(cached)
 

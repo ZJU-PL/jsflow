@@ -28,7 +28,7 @@ See [docs/source/architecture.rst](docs/source/architecture.rst) for detailed ar
 
 ### System Requirements
 
-- **Node.js and npm**: Required for JavaScript/TypeScript AST parsing (automated setup)
+- **Node.js 18.18+ and npm**: Required for JavaScript/TypeScript AST parsing (automated setup)
 - **Python 3.8+**: Required for the core analysis engine
 
 ### From PyPI (Recommended)
@@ -80,8 +80,9 @@ The JavaScript parser scripts are bundled with the Python package and installed
 lazily via npm on first use (or via ``probejs-setup``). They include:
 
 - `esprima` (^4.0.1): JavaScript parser for AST generation
-- `typescript` (^5.9): TypeScript/TSX lowering and project configuration support
-- `source-map` (^0.6.1): Original TypeScript source location mapping
+- `typescript` (^5.9): Type checking and project/module configuration
+- `@typescript-eslint/typescript-estree` (8.42): Original-source TypeScript/TSX parsing
+- `source-map` (^0.6.1): Source mapping for generated JavaScript inputs
 - `commander` (^3.0.2): Command-line interface utilities
 - `ansicolor` (^1.1.84): Terminal color formatting
 
@@ -120,23 +121,21 @@ See [docs/source/user_guide/usage.rst](docs/source/user_guide/usage.rst) for det
 
 ### TypeScript support
 
-TypeScript files (`.ts`, `.tsx`, `.mts`, and `.cts`) and ArkTS `.ets` files are automatically lowered to CommonJS before the existing JavaScript AST pipeline runs. The frontend:
+TypeScript files (`.ts`, `.tsx`, `.mts`, and `.cts`) use a dedicated project frontend that emits probejs's CSV graph directly from an original-source syntax tree. TypeScript is never compiled to JavaScript as part of analysis. The frontend:
 
 - removes type-only syntax while preserving runtime behavior
 - converts ES module imports/exports to the existing module-analysis representation
 - follows transitive TypeScript imports
-- compiles the nearest `tsconfig.json` as a project, including project references
+- loads the nearest `tsconfig.json` as a type-checking project, including project references
 - resolves `baseUrl`/`paths`, package `exports`/`imports`, and workspace packages
-- maps AST locations and reports back to the original TypeScript source
-- lowers TSX and modern JavaScript syntax to parser-compatible JavaScript
-- models `tslib` interop/decorator helpers and uses declaration signatures to identify callback arguments
-- normalizes common ArkTS component syntax (`struct`, state/component decorators, and declarative UI blocks) and treats `@Entry` build bodies as analysis entrypoints
-- prefers the project's installed TypeScript compiler and records compiler diagnostics/version information in `report.json`
+- preserves original TypeScript locations and source snippets without source maps
+- normalizes TSX and TypeScript-only runtime constructs in memory without compiler helpers
+- uses exact ESTree-to-TypeScript node mappings and declaration signatures to identify callback arguments
+- records the tested TypeScript compiler and structured diagnostics in `report.json`
 - recognizes callback properties in typed options objects and common Fastify, NestJS, EventEmitter, Commander, Yargs, worker, and serverless entrypoints
-- reads HarmonyOS `build-profile.json5`, `module.json5`, and `oh-package.json5` project metadata
 - consumes existing external or inline JavaScript source maps when analyzing generated CommonJS
 
-Declaration files (`.d.ts`, `.d.mts`, and `.d.cts`) are not emitted as runtime files, but their signatures inform callback and promise metadata. Common generated/dependency directories are skipped during directory analysis. Type errors do not prevent emission because probejs analyzes runtime flows.
+Declaration files (`.d.ts`, `.d.mts`, and `.d.cts`) are not runtime files, but their signatures inform callback and promise metadata. Common generated/dependency directories are skipped during directory analysis. Type errors do not prevent conservative runtime analysis. ArkTS `.ets` is intentionally not parsed heuristically; compile it with the matching HarmonyOS toolchain and analyze the resulting JavaScript.
 
 > **Experimental: PoC generation utilities.** The directory `tools/pocgen/` contains experimental utilities that consume `report.json` to assist with proof-of-concept generation. Its `skills/` subdirectory (`tools/pocgen/skills/probejs-poc-generation/`) provides an interactive agent workflow. These are **separate from the core analysis pipeline** and currently rely on LLM-based coding agents (e.g., Codex, Claude) rather than automated symbolic reasoning.
 

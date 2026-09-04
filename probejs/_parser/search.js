@@ -182,10 +182,10 @@ function resolveWorkspaceModule(moduleName, requiredBy) {
 
 function resolveFile(candidate) {
     if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
-    for (const extension of ['.js', '.ts', '.tsx', '.mjs', '.cjs', '.mts', '.cts', '.ets']) {
+    for (const extension of ['.js', '.ts', '.tsx', '.mjs', '.cjs', '.mts', '.cts']) {
         if (fs.existsSync(candidate + extension) && fs.statSync(candidate + extension).isFile()) return candidate + extension;
     }
-    for (const extension of ['.js', '.ts', '.tsx', '.mjs', '.cjs', '.mts', '.cts', '.ets']) {
+    for (const extension of ['.js', '.ts', '.tsx', '.mjs', '.cjs', '.mts', '.cts']) {
         const indexFile = path.join(candidate, 'index' + extension);
         if (fs.existsSync(indexFile) && fs.statSync(indexFile).isFile()) return indexFile;
     }
@@ -281,7 +281,7 @@ function searchModule(moduleName, requiredBy, disableBuiltinPackages = false) {
             }
         }
         if (!found && !/\.[cm]?[jt]sx?$/i.test(moduleName)){
-            for (const extension of ['.js', '.ts', '.tsx', '.mjs', '.cjs', '.mts', '.cts', '.ets']) {
+            for (const extension of ['.js', '.ts', '.tsx', '.mjs', '.cjs', '.mts', '.cts']) {
                 const candidatePath = currentPath + extension;
                 if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile()) {
                     console.error(`Package ${moduleName} found at ${candidatePath}`.white.inverse);
@@ -321,7 +321,7 @@ function searchMain(packagePath) {
     if (fs.existsSync(mainPath) && fs.statSync(mainPath).isFile()) {
         return mainPath;
     }
-    for (const extension of ['.js', '.ts', '.tsx', '.mjs', '.cjs', '.mts', '.cts', '.ets']) {
+    for (const extension of ['.js', '.ts', '.tsx', '.mjs', '.cjs', '.mts', '.cts']) {
         const candidatePath = mainPath.endsWith(extension) ? mainPath : mainPath + extension;
         if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile()) {
             return candidatePath;

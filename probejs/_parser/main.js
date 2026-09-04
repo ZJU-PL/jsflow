@@ -12,7 +12,7 @@ const os = require('os');
 const ansicolor = require('ansicolor').nice;
 const Readable = require('stream').Readable;
 const program = require('commander');
-const typescript = require('./typescript.js');
+const sourceMaps = require('./source-map.js');
 program
     .version('0.12.2')
     .usage('<filename or package name> [options]')
@@ -32,7 +32,7 @@ program
     .option('--delimiter <comma/tab>', 'Delimiter of the output. ' +
         'You can choose from "comma" and "tab".', 'tab')
     .option('-e, --expression', 'Indicate that the input is an expression')
-    .option('--typescript', 'Parse stdin as TypeScript');
+    .option('--ast-json', 'Internal: read a prepared ESTree payload from stdin');
 
 function invalidArguments() {
     console.error('Invalid arguments: %s\nSee --help for a list of available commands.', program.args.join(' '));
@@ -40,6 +40,16 @@ function invalidArguments() {
 }
 
 program.parse(process.argv);
+
+var preparedAstPayload = null;
+if (program.astJson) {
+    try {
+        preparedAstPayload = JSON.parse(fs.readFileSync(0, 'utf8'));
+    } catch (error) {
+        console.error(`Unable to read prepared AST payload: ${error.message}`);
+        process.exit(1);
+    }
+}
 
 // initialization
 
@@ -137,6 +147,9 @@ if (outputStyle == 'php') {
 
 function getCode(node, sourceCode) {
     /* get corresponding source code string of a node */
+    if (node.probejsCode !== undefined) {
+        return node.probejsCode;
+    }
     if (node.range) {
         return sourceCode.substr(node.range[0], node.range[1] - node.range[0]).replace(/\n/g, '');
     } else {
@@ -1896,8 +1909,8 @@ function dfs(currentNode, currentId, parentId, childNum, currentFunctionId, extr
             };
             childNumberCounter++;
             // if the callee is 'require', add the required module into the queue
-            let modulePath = null;
-            if (currentNode.callee && currentNode.callee.name == 'require') {
+            let modulePath = currentNode.probejsModulePath || null;
+            if (currentNode.callee && currentNode.callee.name == 'require' && !program.astJson) {
                 if (currentNode.arguments && currentNode.arguments.length >= 1 && currentNode.arguments[0].type == 'Literal') {
                     let moduleName = currentNode.arguments[0].value;
                     if (filename == 'stdin'){
@@ -1916,6 +1929,11 @@ function dfs(currentNode, currentId, parentId, childNum, currentFunctionId, extr
                 } else {
                     console.error(`Invalid require expression: ${getCode(currentNode, sourceCode)}`);
                 }
+            } else if (currentNode.callee && currentNode.callee.name == 'require' && program.astJson &&
+                currentNode.arguments && currentNode.arguments.length >= 1 &&
+                currentNode.arguments[0].type == 'Literal') {
+                const moduleName = currentNode.arguments[0].value;
+                phpflag = builtInModules.includes(moduleName) ? 'JS_REQUIRE_BUILTIN' : 'JS_REQUIRE_EXTERNAL';
             }
             code = getCode(currentNode, sourceCode);
             if (code.length > 100 || code.includes('\n')) code = '';
@@ -3089,7 +3107,7 @@ function walkDir(dir, parentNodeId, callback) {
                 walkDir(dirPath, currentId, callback);
             }
         } else {
-            if (/\.(?:[cm]?js|[cm]?ts|tsx|ets)$/i.test(f) && !/\.d\.[cm]?ts$/i.test(f)) {
+            if (/\.(?:[cm]?js|jsx)$/i.test(f)) {
                 callback(path.join(dir, f), currentId);
             }
         }
@@ -3098,36 +3116,34 @@ function walkDir(dir, parentNodeId, callback) {
 
 function analyze(filePath, parentNodeId) {
     // read the file
-    filename = filePath || 'stdin';
+    filename = program.astJson && preparedAstPayload ? preparedAstPayload.filename : (filePath || 'stdin');
     reportedFilename = filename;
     if (analyzedModules.includes(filename)){
         console.log(("Skipping " + filename).white.inverse);
         return;
     }
     console.log(("Analyzing " + filename).green.inverse);
-    if (filePath == null){
+    if (filePath == null && !program.astJson){
         // read from stdin
         filePath = 0;
     }
-    sourceCode = fs.readFileSync(filePath, 'utf8');
+    sourceCode = program.astJson ? preparedAstPayload.sourceCode : fs.readFileSync(filePath, 'utf8');
     sourceCode = sourceCode.replace(/^#!.*\n/, '\n');
     sourceCode = sourceCode.replace(/\r\n/g, '\n');
     let sourceMap = null;
-    currentTypeScriptInfo = null;
-    if (program.typescript || typescript.isTypeScriptFile(filename)) {
-        const transpiled = typescript.projectCompiler.compileFile(filename, sourceCode);
-        for (const diagnostic of transpiled.diagnostics) {
-            const diagnosticMessage = typescript.diagnosticText(diagnostic);
+    currentTypeScriptInfo = program.astJson ? (preparedAstPayload.info || null) : null;
+    let preparedRoot = program.astJson ? preparedAstPayload.ast : null;
+    if (program.astJson && currentTypeScriptInfo) {
+        for (const diagnostic of currentTypeScriptInfo.diagnostics || []) {
+            const location = diagnostic.file ? `${diagnostic.file}:${diagnostic.line}:${diagnostic.column} ` : '';
+            const diagnosticMessage = `${location}${diagnostic.code}: ${diagnostic.message}`;
             if (!reportedTypeScriptDiagnostics.has(diagnosticMessage)) {
                 console.log(diagnosticMessage.lightRed);
                 reportedTypeScriptDiagnostics.add(diagnosticMessage);
             }
         }
-        sourceCode = transpiled.code;
-        sourceMap = transpiled.sourceMap;
-        currentTypeScriptInfo = transpiled;
     } else {
-        const existingMap = typescript.loadJavaScriptSourceMap(filename, sourceCode);
+        const existingMap = sourceMaps.loadJavaScriptSourceMap(filename, sourceCode);
         if (existingMap) {
             sourceMap = existingMap.sourceMap;
             reportedFilename = existingMap.originalFile || filename;
@@ -3169,14 +3185,15 @@ function analyze(filePath, parentNodeId) {
     }
     // parse
     try {
-        var root = esprima.parseModule(sourceCode, {
+        var root = preparedRoot || esprima.parseModule(sourceCode, {
             loc: true,
             range: true,
             tolerant: true,
             attachComment: true
         });
-        typescript.remapAstLocations(root, sourceMap,
-            currentTypeScriptInfo && currentTypeScriptInfo.declarationMetadata);
+        if (!preparedRoot) {
+            sourceMaps.remapAstLocations(root, sourceMap);
+        }
         if (root.errors && root.errors.length > 0){
             console.log('Errors occurred when generating AST:'.lightRed.inverse);
             for (err of root.errors){
@@ -3298,9 +3315,11 @@ if (program.search){
 }
 
 // analyze any required packages
-for (let currentModule of requiredModules) {
-    if (currentModule == 'built-in') continue;
-    analyze(currentModule, null);
+if (!program.astJson) {
+    for (let currentModule of requiredModules) {
+        if (currentModule == 'built-in') continue;
+        analyze(currentModule, null);
+    }
 }
 
 nodesStream.push(null);

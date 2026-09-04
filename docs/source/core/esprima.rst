@@ -10,7 +10,7 @@ Overview
 
 The esprima interface is responsible for:
 
-* Parsing JavaScript and TypeScript files into AST/CSV format using Esprima and the TypeScript compiler
+* Parsing JavaScript and TypeScript files into the shared AST/CSV contract using separate language frontends
 * Resolving Node-style and tsconfig-aware module entry points
 * Discovering the transitive file set loaded by ``require(...)``
 * Managing the lazy installation of JavaScript parser dependencies on first use
@@ -46,8 +46,9 @@ call to any function in this module, ``probejs._setup.get_parser_dir()`` copies 
    # - esprima@^4.0.1: JavaScript parser
    # - commander@^3.0.2: CLI framework
    # - ansicolor@^1.1.84: Terminal colors
-   # - typescript@^5.9: TypeScript/TSX lowering
-   # - source-map@^0.6.1: Source map support
+   # - typescript@^5.9: Type checking and project configuration
+   # - @typescript-eslint/typescript-estree@8.42: TypeScript/TSX parsing
+   # - source-map@^0.6.1: Generated JavaScript source-map support
 
 Basic Usage
 -----------
@@ -115,11 +116,16 @@ Command-line Scripts
 
 The Node.js scripts bundled in ``probejs/_parser/`` include:
 
-``main.js`` - Main parsing entry point:
+``main.js`` - JavaScript parsing entry point and internal CSV encoder:
    - Accepts a file path or ``-`` for stdin
-   - Detects file type from extension (``.js``, ``.ts``, ``.tsx``, ``.mts``, ``.cts``, ``.ets``)
-   - TypeScript/TSX/ArkTS sources are lowered to CommonJS before CSV emission
+   - Parses JavaScript with Esprima
    - Outputs a CSV/AST representation on stdout
+
+``typescript-main.js`` - TypeScript project frontend:
+   - Parses ``.ts``, ``.tsx``, ``.mts``, and ``.cts`` from original source
+   - Loads the nearest ``tsconfig.json`` and TypeScript checker
+   - Normalizes type-only and TypeScript runtime constructs in memory
+   - Emits the shared CSV contract without compiling TypeScript to JavaScript
 
 ``search.js`` - Module resolution helper:
    - Resolves ``require()`` paths using Node-style walk-up search
@@ -151,7 +157,7 @@ Troubleshooting
 
 **Common Issues:**
 
-* **Node.js not found**: Install Node.js 12.x or later from https://nodejs.org/
+* **Node.js not found**: Install Node.js 18.18 or later from https://nodejs.org/
 * **npm install fails**: Run ``probejs-setup --force`` to reinstall
 * **Parse errors**: The parser reports syntax errors on stderr; check ``run_log.log``
 * **Timeout for large files**: Increase timeout via the ``-t`` flag if supported by the parser script
@@ -165,4 +171,4 @@ Limitations
 
 * Each ``esprima_parse()`` call spawns a fresh ``node`` subprocess — no persistent process reuse
 * The CSV/AST output format is an internal representation; prefer ``--json`` for structured output
-* ArkTS ``.ets`` support covers the common component subset; vendor-only syntax may require pre-compilation with the HarmonyOS toolchain
+* ArkTS ``.ets`` requires pre-compilation with the matching HarmonyOS toolchain

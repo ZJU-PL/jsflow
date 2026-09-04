@@ -6307,9 +6307,9 @@ def analyze_files(G, path, start_node_id=0, check_signatures=[]):
     Analyze JavaScript or TypeScript files and generate an object property graph.
 
     This is the main entry point for file analysis. JavaScript is parsed with
-    Esprima; TypeScript is lowered to compatible JavaScript with source-map
-    locations before AST import. The imported graph is then symbolically
-    executed to build the object property graph.
+    Esprima; TypeScript uses a dedicated original-source frontend that emits
+    the same CSV contract without JavaScript compilation. The imported graph
+    is then symbolically executed to build the object property graph.
 
     Args:
         G (Graph): The graph object to populate with analysis results

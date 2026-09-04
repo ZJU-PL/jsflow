@@ -94,7 +94,7 @@ class TestTypeScriptAnalysis(unittest.TestCase):
 
             self.assertEqual(report["summary"]["matched_findings"], 1)
 
-    def test_arkts_entry_component_is_analyzed_after_commonjs_lowering(self):
+    def test_arkts_entry_component_requires_vendor_compilation(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             entry = os.path.join(temp_dir, "Index.ets")
             with open(entry, "w", encoding="utf-8") as fp:
@@ -109,9 +109,14 @@ class TestTypeScriptAnalysis(unittest.TestCase):
                     "}\n"
                 )
 
-            report = self.run_probejs(entry, os.path.join(temp_dir, "report"))
+            result = subprocess.run(
+                [sys.executable, "-m", "probejs", "-t", "os_command", entry],
+                capture_output=True,
+                text=True,
+            )
 
-            self.assertEqual(report["summary"]["matched_findings"], 1)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("ArkTS .ets input is not supported", result.stderr)
 
     def test_frontend_diagnostics_are_in_json_report(self):
         with tempfile.TemporaryDirectory() as temp_dir:
